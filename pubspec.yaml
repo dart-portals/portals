@@ -1,0 +1,14 @@
+name: magic_wormhole
+description: A Dart implementation of the magic wormhole.
+version: 1.0.0+1
+author: Marcel Garus <marcel.garus@gmail.com>
+homepage: https://github.com/marcelgarus/magic_wormhole
+
+environment:
+  sdk: ">=2.6.0 <3.0.0"
+
+dependencies:
+  async: ^2.4.0
+  meta: ^1.1.8
+  web_socket_channel: ^1.1.0
+  crypto: ^2.1.3
