@@ -49,7 +49,7 @@ BigInt passwordToScalar(Uint8List password, int scalarSizeBytes, BigInt q) {
   // passwords give nearly-uniform scalars.
   final oversized = expandPassword(password, scalarSizeBytes + 16);
   assert(oversized.length >= scalarSizeBytes);
-  final i = bytesToNumber(oversized);
+  final i = bytesToNumber(Uint8List.fromList(oversized.reversed.toList()));
   return i % q;
 }
 

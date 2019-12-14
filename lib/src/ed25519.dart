@@ -198,9 +198,7 @@ class Element extends ExtendedPoint {
     // oversized string (128 bits more than the field size), then reducing down
     // to q. But it's comforting, and it's the same technique we use for
     // converting passwords/seeds to scalars (which _does_ need uniformity).
-    print(seed);
     final hSeed = expandArbitraryElementSeed(seed, 256 ~/ 8 + 16);
-    print(hSeed);
     final y = bytesToNumber(Uint8List.fromList(hSeed.reversed.toList())) % q;
     print(y);
 

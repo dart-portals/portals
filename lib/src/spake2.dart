@@ -80,8 +80,13 @@ class Spake2 {
   }
 
   void computeOutboundMessage() {
-    var pwBlinding = myBlinding.fastScalarMult(pwScalar);
+    print('\nmyBlinding = $myBlinding');
+    print('pwScalar = $pwScalar');
+    var pwBlinding = myBlinding.scalarMult(pwScalar);
+    print('\npwBlinding is $pwBlinding');
+    print('\nxyElement is $xyElement');
     var messageElem = xyElement + pwBlinding;
+    print('\nmessageElem is $messageElem');
     this.outboundMessage = messageElem.toBytes();
   }
 
@@ -120,8 +125,6 @@ void main() {
   final a = Spake2(utf8.encode('password'));
   a.start(random);
   print('The outbound message of a is ${a.outboundMessage}.');
-
-  print('s = ${a.myBlinding}');
 
   // final b = Spake2(utf8.encode('password'));
   // b.start(random);
