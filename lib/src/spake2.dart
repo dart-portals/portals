@@ -1,11 +1,19 @@
+import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
 
-String sha256(String data) => crypto.sha256.convert(data.codeUnits).toString();
+import 'ed25519.dart';
+import 'groups.dart';
+import 'utils.dart';
 
-const a = 'a';
-const b = 'b';
+Uint8List sha256(List<int> data) =>
+    Uint8List.fromList(crypto.sha256.convert(data).bytes);
+
+// final m = Element.arbitraryElement(ascii.encode('M'));
+// final n = Element.arbitraryElement(ascii.encode('N'));
+final s = Element.arbitraryElement(ascii.encode('symmetric'));
 
 // x = random(Zp)
 // X = scalarmult(g, x)
@@ -18,126 +26,114 @@ const b = 'b';
 //  KB = scalarmult(X* + scalarmult(M, -int(pw)), y)
 //  key = H(H(pw) + H(idA) + H(idB) + X* + Y* + KB)
 
-String finalizeSpake2(idA, idB, xMsg, yMsg, kBytes, pw) {
-  return sha256([
-    sha256(pw),
-    sha256(idA),
-    sha256(idB),
-    xMsg,
-    yMsg,
+Uint8List finalizeSpake2(String idA, String idB, BigInt xMsg, BigInt yMsg,
+    int kBytes, Uint8List pw) {
+  return sha256(<int>[
+    ...sha256(pw),
+    ...sha256(utf8.encode(idA)),
+    ...sha256(utf8.encode(idB)),
+    ...numberToBytes(xMsg),
+    ...numberToBytes(yMsg),
     kBytes,
-  ].join());
+  ]);
 }
 
-String finalizeSpake2Symmetric(idSymmetric, msg1, msg2, kBytes, pw) {
+Uint8List finalizeSpake2Symmetric(
+    BigInt msg1, BigInt msg2, int kBytes, Uint8List pw) {
   // Since we don't know which side is which, we must sort the messages.
-  final firstMsg = min(msg1, msg2);
-  final secondMsg = max(msg1, msg2);
+  final firstMsg = msg1 < msg2 ? msg1 : msg2;
+  final secondMsg = msg1 < msg2 ? msg2 : msg1;
 
-  return sha256([
-    sha256(pw),
-    sha256(idSymmetric),
-    firstMsg,
-    secondMsg,
+  return sha256(<int>[
+    ...sha256(pw),
+    ...numberToBytes(firstMsg),
+    ...numberToBytes(secondMsg),
     kBytes,
-  ].join());
+  ]);
 }
 
 /// This class manages one side of a spake2 key negotiation.
-class Spake2Base {
-  final pw;
-  var pwScalar;
-  var side;
+class Spake2 {
+  final Uint8List password;
+  BigInt pwScalar;
+  BigInt xyScalar;
+  Element xyElement;
+  Uint8List outboundMessage;
+  Uint8List inboundMessage;
 
   bool _started = false;
   bool _finished = false;
 
-  Spake2Base(this.pw) {
-    assert(password is Uint8List); // TODO:
-    pwScalar = params.group.passwordToScalar(password); // TODO:
+  Spake2(this.password) {
+    pwScalar = passwordToScalar(password, 32, l);
   }
 
-  void start() {
+  void start([Random random]) {
     assert(!_started);
     _started = true;
 
-    var g = params.group;
-    this.xyScalar = g.randomScalar(Random.secure());
-    this.xyElem = g.Base.scalarmult(xyScalar);
+    this.xyScalar = BigInt.parse(
+        '636300388589822600411935121714421527614733343890922194690571496772989624724');
+    //Scalar.random(random);
+    this.xyElement = base.fastScalarMult(xyScalar);
     computeOutboundMessage();
-    var outboundSideAndMessage = side + outboundMessage
-    return outboundSideAndMessage;
   }
 
   void computeOutboundMessage() {
-    pwBlinding = myBlinding().scalarmult(pwScalar);
-    messageElem = xyElem.add(pwBlinding);
+    var pwBlinding = myBlinding.fastScalarMult(pwScalar);
+    var messageElem = xyElement + pwBlinding;
     this.outboundMessage = messageElem.toBytes();
   }
 
-  void finish(inboundSideAndMessage) {
+  Uint8List finish(Uint8List inboundMessage) {
     assert(!_finished);
     _finished = true;
 
-    this.inboundMessage = extractMessage(inboundSideAndMessage);
+    this.inboundMessage = inboundMessage;
 
-    g = this.params.group;
-    inboundElem = g.bytesToElement(inboundMessage);
-    assert(inboundElem.toBytes() == outboundMessage);
+    final inboundElement = Element.fromBytes(inboundMessage);
+    assert(inboundElement.toBytes() == outboundMessage);
 
-    pwUnblinding = myUnblinding().scalarmult(-pwScalar);
-    kElem = inboundElem.add(pwUnblinding).scalarmult(xyScalar);
-    kBytes = kElem.toBytes();
+    final pwUnblinding = myUnblinding.scalarMult(-pwScalar);
+    final kElem = (inboundElement + pwUnblinding).scalarMult(xyScalar);
+    final kBytes = kElem.toBytes();
     final key = this.finalize(kBytes);
     return key;
   }
 
-  int hashParams() {
-    /*
-    # We can't really reconstruct the group from static data, but we'll
-    # record enough of the params to confirm that we're using the same
-    # ones upon restore. Otherwise the failure mode is silent key
-    # disagreement. Any changes to the group or the M/N seeds should
-    # cause this to change.
-    g = self.params.group
-    pieces = [g.arbitrary_element(b"").to_bytes(),
-              g.scalar_to_bytes(g.password_to_scalar(b"")),
-              self.params.M.to_bytes(),
-              self.params.N.to_bytes(),
-              ]
-    return sha256(b"".join(pieces)).hexdigest()
-    */
-  }
+  Element get myBlinding => s;
+  Element get myUnblinding => s;
 
-  void serialize() {
-    assert(!_started);
-    return json.encode(serializeToDict());
-  }
-
-  void fromSerialized(data) {
-    final d = json.decode(data);
-    _deserializeFromDict(d);
+  Uint8List finalize(kBytes) {
+    return finalizeSpake2Symmetric(
+      bytesToNumber(inboundMessage),
+      bytesToNumber(outboundMessage),
+      kBytes,
+      password,
+    );
   }
 }
 
-class Spake2Symmetric extends Spake2Base {
-  final idSymmetric;
+void main() {
+  final random = Random.secure();
 
-  Spake2Symmetric(var password, this.idSymmetric, params) {
-    super(password);
-  }
+  final a = Spake2(utf8.encode('password'));
+  a.start(random);
+  print('The outbound message of a is ${a.outboundMessage}.');
 
-  void myBlinding() => params.S;
-  void myUnblinding() => params.S;
+  print('s = ${a.myBlinding}');
 
-  void extractMessage(String inboundSideAndMessage) {
-    otherSide = inboundSideAndMessage.substring(0, 1);
-    inboundMessage = inboundSideAndMessage.substring(1);
-    assert(otherSide == SideSymmetric);
-    return inboundMessage;
-  }
+  // final b = Spake2(utf8.encode('password'));
+  // b.start(random);
+  // print('The outbound message of b is ${b.outboundMessage}.');
 
-  void finalize(kBytes) {
-    return finalizeSpake2Symmetric(idSymmetric, inboundMessage, outboundMessage, kBytes, pw);
-  }
+  // final aKey = a.finish(Uint8List.fromList([
+  //   ...[101, 182, 161, 21, 185, 17, 230, 134, 13, 114, 232, 247, 49, 161, 24],
+  //   ...[24, 165, 25, 154, 153, 79, 151, 39, 236, 193, 170, 94, 201, 91, 191],
+  //   ...[107, 68],
+  // ]));
+  // print('The key of a is $aKey.');
+
+  // final bKey = b.finish(b.outboundMessage);
+  // print('The key of b is $bKey.');
 }

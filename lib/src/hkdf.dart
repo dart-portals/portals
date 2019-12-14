@@ -16,7 +16,7 @@ Uint8List _expand(Uint8List key, Uint8List info, int length) {
         'sha256, but length is $length.');
   }
 
-  var blocksNeeded = (length / hashLength).ceil();
+  var blocksNeeded = 2 * (length / hashLength).ceil();
   var okM = <int>[];
   var outputBlock = <int>[];
 

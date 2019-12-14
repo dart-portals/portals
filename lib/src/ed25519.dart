@@ -61,7 +61,7 @@ class Point {
 
     final p = (x & 1.bi == 1) ? Point(x, y + 1.bi << 255) : this;
 
-    return numberToBytes(p.y);
+    return Uint8List.fromList(numberToBytes(p.y).reversed.toList());
   }
 
   factory Point.decode(Uint8List encoded) {
@@ -169,14 +169,19 @@ class Element extends ExtendedPoint {
       return Element(Point(0.bi, 1.bi).toExtended());
     }
     final a = this.scalarMult(scalar >> 1).doubleElement();
-    final result = (scalar & 1.bi != 0.bi) ? a.fastAdd(this) : a;
-    // if (scalar < 3.bi) {
-    //   print('');
-    //   print('a is $a');
-    //   print('bool(scalar & 1) = ${scalar & 1.bi != 0.bi}');
-    //   print('this * $scalar = $result');
-    // }
+    final result = (scalar & 1.bi != 0.bi) ? (a + this) : a;
     return result;
+  }
+
+  Element fastScalarMult(BigInt scalar) {
+    assert(scalar >= 0.bi);
+    scalar %= l;
+
+    if (scalar == 0.bi) {
+      return Element(Point(0.bi, 1.bi).toExtended());
+    }
+    final a = this.fastScalarMult(scalar >> 1).doubleElement();
+    return (scalar & 1.bi != 0.bi) ? a.fastAdd(this) : a;
   }
 
   Uint8List toBytes() => this.toAffine().encode();
@@ -193,13 +198,11 @@ class Element extends ExtendedPoint {
     // oversized string (128 bits more than the field size), then reducing down
     // to q. But it's comforting, and it's the same technique we use for
     // converting passwords/seeds to scalars (which _does_ need uniformity).
-    print('seed = $seed');
+    print(seed);
     final hSeed = expandArbitraryElementSeed(seed, 256 ~/ 8 + 16);
-    print('hSeed = $hSeed');
-    // [148, 173, 185, 152, 137, 229, 5, 111, 24, 186, 252, 165, 98, 225, 245, 123, 24, 5, 183, 81, 6, 153, 193, 158, 153, 86, 245, 244, 42, 254, 90, 75]
-    // [148, 173, 185, 152, 137, 229, 5, 111, 24, 186, 252, 165, 98, 225, 245, 123, 24, 5, 183, 81, 6, 153, 193, 158, 153, 86, 245, 244, 42, 254, 90, 75, 108, 13, 204, 153, 88, 4, 76, 32, 112, 83, 176, 191, 233, 122, 124, 198]
-    final y = bytesToNumber(hSeed) % q;
-    print('y = $y');
+    print(hSeed);
+    final y = bytesToNumber(Uint8List.fromList(hSeed.reversed.toList())) % q;
+    print(y);
 
     // We try successive y values until we find a valid point.
     for (var plus = 0.bi;; plus += 1.bi) {
