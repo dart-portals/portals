@@ -26,10 +26,10 @@ final d = -121665.bi * 121666.bi.inv;
 final i = BigInt.two.modPow(q.dec ~/ 4.bi, q);
 
 BigInt xrecover(BigInt y) {
-  final xx = q.squared.dec * (d * y.squared + 1.bi).inv;
+  final xx = (y.squared - 1.bi) * (d * y.squared + 1.bi).inv;
   var x = xx.modPow((q + 3.bi) ~/ 8.bi, q);
 
-  if ((x.squared - xx) % q != 0) {
+  if ((x.squared - xx) % q != 0.bi) {
     x = (x * i) % q;
   }
   if (x.isOdd) {
@@ -65,12 +65,13 @@ class Point {
   }
 
   factory Point.decode(Uint8List encoded) {
-    final unclamped = null; //int(binascii.hexlify(s[:32][::-1]), 16);
+    assert(encoded.length == 32);
+    final unclamped = bytesToNumber(Uint8List.fromList(encoded.toList()));
     final clamp = (1.bi << 255) - 1.bi;
     final y = unclamped & clamp; // Clear MSB
     var x = xrecover(y);
 
-    if ((x & 1.bi == 1) != (unclamped & (1 << 255))) {
+    if ((x & 1.bi == 1) != (unclamped & (1.bi << 255))) {
       x = q - x;
     }
     final point = Point(x, y);
@@ -80,6 +81,8 @@ class Point {
     }
     return point;
   }
+
+  String toString() => '($x, $y)';
 }
 
 class ExtendedPoint {
@@ -98,11 +101,15 @@ class ExtendedPoint {
   Point toAffine() => Point(x, y) * z.inv % q;
 
   bool get isZero => x == 0 && y % q == z % q && y != 0;
+
+  String toString() => '($x, $y, $z, $t)';
 }
 
 final by = 4.bi * 5.bi.inv;
 final bx = xrecover(by);
 final b = Point(bx, by) % q;
+
+void debugStuff() {}
 
 // Extended coordinates: x=X/Z, y=Y/Z, x*y=T/Z
 // http://www.hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html
@@ -118,14 +125,28 @@ class Element extends ExtendedPoint {
     final c = (t * 2.bi * d * other.t) % q;
     final e = z * 2.bi * other.z % q;
     final f = (b - a) % q;
-    final g = (d - c) % q;
-    final h = (d + c) % q;
+    final g = (e - c) % q;
+    final h = (e + c) % q;
     final i = (b + a) % q;
 
-    return ExtendedPoint(f * g, h * i, g * h, f * i) % q;
+    return Element(ExtendedPoint(f * g, h * i, g * h, f * i) % q);
   }
 
-  ExtendedPoint doubleElement() {
+  // Only works if [this != other] and if the order of the points is not 1, 2,
+  // 4 or 8. But it's 10 % faster than the normal +.
+  Element fastAdd(ExtendedPoint other) {
+    final a = ((y - x) * (other.y + other.x)) % q;
+    final b = ((y + x) * (other.y - other.x)) % q;
+    final c = (z * 2.bi * other.t) % q;
+    final e = (t * 2.bi * other.z) % q;
+    final f = (e + c) % q;
+    final g = (b - a) % q;
+    final h = (b + a) % q;
+    final i = (e - c) % q;
+    return Element(ExtendedPoint(f * g, h * i, g * h, f * i) % q);
+  }
+
+  Element doubleElement() {
     // dbl-2008-hwcd
     final a = x.squared;
     final b = y.squared;
@@ -137,18 +158,25 @@ class Element extends ExtendedPoint {
     final f = (g - c) % q;
     final h = (d - b) % q;
 
-    return ExtendedPoint(e * f, g * h, f * g, e * h) % q;
+    return Element(ExtendedPoint(e * f, g * h, f * g, e * h) % q);
   }
 
   Element scalarMult(BigInt scalar) {
     assert(scalar >= 0.bi);
     scalar %= l;
 
-    if (scalar == 0) {
-      return Point(0.bi, 1.bi).toExtended();
+    if (scalar == 0.bi) {
+      return Element(Point(0.bi, 1.bi).toExtended());
     }
-    final a = scalarMult(scalar >> 1).doubleElement();
-    return (scalar & 1.bi == 1) ? (a + this) : a;
+    final a = this.scalarMult(scalar >> 1).doubleElement();
+    final result = (scalar & 1.bi != 0.bi) ? a.fastAdd(this) : a;
+    // if (scalar < 3.bi) {
+    //   print('');
+    //   print('a is $a');
+    //   print('bool(scalar & 1) = ${scalar & 1.bi != 0.bi}');
+    //   print('this * $scalar = $result');
+    // }
+    return result;
   }
 
   Uint8List toBytes() => this.toAffine().encode();
@@ -165,15 +193,19 @@ class Element extends ExtendedPoint {
     // oversized string (128 bits more than the field size), then reducing down
     // to q. But it's comforting, and it's the same technique we use for
     // converting passwords/seeds to scalars (which _does_ need uniformity).
+    print('seed = $seed');
     final hSeed = expandArbitraryElementSeed(seed, 256 ~/ 8 + 16);
+    print('hSeed = $hSeed');
+    // [148, 173, 185, 152, 137, 229, 5, 111, 24, 186, 252, 165, 98, 225, 245, 123, 24, 5, 183, 81, 6, 153, 193, 158, 153, 86, 245, 244, 42, 254, 90, 75]
+    // [148, 173, 185, 152, 137, 229, 5, 111, 24, 186, 252, 165, 98, 225, 245, 123, 24, 5, 183, 81, 6, 153, 193, 158, 153, 86, 245, 244, 42, 254, 90, 75, 108, 13, 204, 153, 88, 4, 76, 32, 112, 83, 176, 191, 233, 122, 124, 198]
     final y = bytesToNumber(hSeed) % q;
+    print('y = $y');
 
     // We try successive y values until we find a valid point.
     for (var plus = 0.bi;; plus += 1.bi) {
       final yPlus = (y + plus) % q;
       final x = xrecover(yPlus);
-      final pointA = Point(
-          x, yPlus); // No attempt to use both "positive" and "negative" x.
+      final pointA = Point(x, yPlus);
 
       // Only about 50 % of y coordinates map to valid curve points (I think
       // the other half gives you points on the "twist").
@@ -267,3 +299,11 @@ extension Scalar on BigInt {
 
 final base = Element(b.toExtended());
 final zero = Element(Point(0.bi, 1.bi).toExtended());
+
+void main() {
+  final random = Scalar.random();
+  print('Random scalar: $random');
+
+  final element = Element.arbitraryElement(Uint8List.fromList([43]));
+  print('Element. $element');
+}

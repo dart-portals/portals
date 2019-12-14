@@ -24,7 +24,8 @@ Uint8List _expand(Uint8List key, Uint8List info, int length) {
     outputBlock = Hmac(sha256, key).convert(outputBlock + info + [i + 1]).bytes;
     okM.addAll(outputBlock);
   }
-  return Uint8List.fromList(okM.sublist(0, length));
+  final shortenedList = okM.length <= length ? okM : okM.sublist(0, length);
+  return Uint8List.fromList(shortenedList);
 }
 
 class Hkdf {
