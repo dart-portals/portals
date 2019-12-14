@@ -1,19 +1,20 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-extension _MakeStringEven on String {
-  makeEvenlyLong() => this.length.isEven ? this : '0$this';
+extension _LeadingZeros on String {
+  fillWithLeadingZeros(int length) =>
+      '${[for (var i = length - this.length; i > 0; i--) '0'].join()}$this';
 }
 
 BigInt bytesToNumber(Uint8List bytes) {
   final hexString = bytes.reversed
-      .map((byte) => byte.toRadixString(16).makeEvenlyLong())
+      .map((byte) => byte.toRadixString(16).fillWithLeadingZeros(2))
       .join('');
   return BigInt.parse(hexString, radix: 16);
 }
 
 Uint8List numberToBytes(BigInt number) {
-  var hexString = number.toRadixString(16).makeEvenlyLong();
+  var hexString = number.toRadixString(16).fillWithLeadingZeros(32);
 
   final bytes = <int>[];
   for (var i = 0; i < hexString.length ~/ 2; i++) {

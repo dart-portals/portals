@@ -47,8 +47,8 @@ Uint8List finalizeSpake2Symmetric(
   final firstMsg = isFirstMsgSmaller ? msg1Bytes : msg2Bytes;
   final secondMsg = isFirstMsgSmaller ? msg2Bytes : msg1Bytes;
 
-  print('first_msg = $firstMsg');
-  print('second_msg = $secondMsg');
+  // print('first_msg = $firstMsg');
+  // print('second_msg = $secondMsg');
 
   final transcript = <int>[
     ...sha256(pw),
@@ -57,12 +57,12 @@ Uint8List finalizeSpake2Symmetric(
     ...secondMsg,
     ...kBytes,
   ];
-  print('transcript:');
-  print('  pw = ${sha256(pw)}');
-  print('  idSymmetric = ${sha256([])}');
-  print('  firstMsgBytes = $firstMsg');
-  print('  secondMsgBytes = $secondMsg');
-  print('  kBytes = $kBytes');
+  // print('transcript:');
+  // print('  pw = ${sha256(pw)}');
+  // print('  idSymmetric = ${sha256([])}');
+  // print('  firstMsgBytes = $firstMsg');
+  // print('  secondMsgBytes = $secondMsg');
+  // print('  kBytes = $kBytes');
   return sha256(transcript);
 }
 
@@ -86,9 +86,9 @@ class Spake2 {
     assert(!_started);
     _started = true;
 
-    this.xyScalar = BigInt.parse(
-        '636300388589822600411935121714421527614733343890922194690571496772989624724');
-    //Scalar.random(random);
+    // this.xyScalar = BigInt.parse(
+    //     '636300388589822600411935121714421527614733343890922194690571496772989624724');
+    this.xyScalar = Scalar.random(random);
     this.xyElement = base.fastScalarMult(xyScalar);
     computeOutboundMessage();
   }
@@ -115,16 +115,16 @@ class Spake2 {
     //assert(inboundElement.toBytes() == outboundMessage);
 
     final pwUnblinding = myUnblinding.fastScalarMult(-pwScalar);
-    print('\nmyUnblinding = $myUnblinding');
-    print('\npwUnblinding = $pwUnblinding');
-    print('\nxyScalar = $xyScalar');
-    print('pwScalar = $pwScalar\n');
-    print('inboundMessage = $inboundMessage\n');
-    print('inboundElement = $inboundElement\n');
+    // print('\nmyUnblinding = $myUnblinding');
+    // print('\npwUnblinding = $pwUnblinding');
+    // print('\nxyScalar = $xyScalar');
+    // print('pwScalar = $pwScalar\n');
+    // print('inboundMessage = $inboundMessage\n');
+    // print('inboundElement = $inboundElement\n');
     final kElem = (inboundElement + pwUnblinding).fastScalarMult(xyScalar);
-    print('kElem = $kElem');
+    // print('kElem = $kElem');
     final kBytes = kElem.toBytes();
-    print('kBytes = $kBytes');
+    // print('kBytes = $kBytes');
     final key = this.finalize(kBytes);
     return key;
   }
@@ -149,17 +149,18 @@ void main() {
   a.start(random);
   print('The outbound message of a is ${a.outboundMessage}.');
 
-  // final b = Spake2(utf8.encode('password'));
-  // b.start(random);
-  // print('The outbound message of b is ${b.outboundMessage}.');
+  final b = Spake2(utf8.encode('password'));
+  b.start(random);
+  print('The outbound message of b is ${b.outboundMessage}.');
 
-  final aKey = a.finish(Uint8List.fromList([
-    ...[101, 182, 161, 21, 185, 17, 230, 134, 13, 114, 232, 247, 49, 161, 24],
-    ...[24, 165, 25, 154, 153, 79, 151, 39, 236, 193, 170, 94, 201, 91, 191],
-    ...[107, 68],
-  ]));
+  // final aKey = a.finish(Uint8List.fromList([
+  //   ...[101, 182, 161, 21, 185, 17, 230, 134, 13, 114, 232, 247, 49, 161, 24],
+  //   ...[24, 165, 25, 154, 153, 79, 151, 39, 236, 193, 170, 94, 201, 91, 191],
+  //   ...[107, 68],
+  // ]));
+  final aKey = a.finish(a.outboundMessage);
   print('The key of a is $aKey.');
 
-  // final bKey = b.finish(b.outboundMessage);
-  // print('The key of b is $bKey.');
+  final bKey = b.finish(b.outboundMessage);
+  print('The key of b is $bKey.');
 }
