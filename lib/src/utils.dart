@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 extension _MakeStringEven on String {
@@ -20,4 +21,15 @@ Uint8List numberToBytes(BigInt number) {
     bytes.add(int.parse(byteString, radix: 16));
   }
   return Uint8List.fromList(bytes);
+}
+
+extension ListComparator on List<int> {
+  operator <(List<int> other) {
+    for (int i = 0; i < min(this.length, other.length); i++) {
+      if (this[i] != other[i]) {
+        return this[i] < other[i];
+      }
+    }
+    return false;
+  }
 }

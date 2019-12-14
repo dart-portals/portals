@@ -39,17 +39,31 @@ Uint8List finalizeSpake2(String idA, String idB, BigInt xMsg, BigInt yMsg,
 }
 
 Uint8List finalizeSpake2Symmetric(
-    BigInt msg1, BigInt msg2, int kBytes, Uint8List pw) {
+    BigInt msg1, BigInt msg2, Uint8List kBytes, Uint8List pw) {
   // Since we don't know which side is which, we must sort the messages.
-  final firstMsg = msg1 < msg2 ? msg1 : msg2;
-  final secondMsg = msg1 < msg2 ? msg2 : msg1;
+  final msg1Bytes = numberToBytes(msg1).reversed.toList();
+  final msg2Bytes = numberToBytes(msg2).reversed.toList();
+  final isFirstMsgSmaller = msg1Bytes < msg2Bytes;
+  final firstMsg = isFirstMsgSmaller ? msg1Bytes : msg2Bytes;
+  final secondMsg = isFirstMsgSmaller ? msg2Bytes : msg1Bytes;
 
-  return sha256(<int>[
+  print('first_msg = $firstMsg');
+  print('second_msg = $secondMsg');
+
+  final transcript = <int>[
     ...sha256(pw),
-    ...numberToBytes(firstMsg),
-    ...numberToBytes(secondMsg),
-    kBytes,
-  ]);
+    ...sha256([]),
+    ...firstMsg,
+    ...secondMsg,
+    ...kBytes,
+  ];
+  print('transcript:');
+  print('  pw = ${sha256(pw)}');
+  print('  idSymmetric = ${sha256([])}');
+  print('  firstMsgBytes = $firstMsg');
+  print('  secondMsgBytes = $secondMsg');
+  print('  kBytes = $kBytes');
+  return sha256(transcript);
 }
 
 /// This class manages one side of a spake2 key negotiation.
@@ -80,13 +94,13 @@ class Spake2 {
   }
 
   void computeOutboundMessage() {
-    print('\nmyBlinding = $myBlinding');
-    print('pwScalar = $pwScalar');
+    // print('\nmyBlinding = $myBlinding');
+    // print('pwScalar = $pwScalar');
     var pwBlinding = myBlinding.scalarMult(pwScalar);
-    print('\npwBlinding is $pwBlinding');
-    print('\nxyElement is $xyElement');
+    // print('\npwBlinding is $pwBlinding');
+    // print('\nxyElement is $xyElement');
     var messageElem = xyElement + pwBlinding;
-    print('\nmessageElem is $messageElem');
+    // print('\nmessageElem is $messageElem');
     this.outboundMessage = messageElem.toBytes();
   }
 
@@ -96,12 +110,21 @@ class Spake2 {
 
     this.inboundMessage = inboundMessage;
 
-    final inboundElement = Element.fromBytes(inboundMessage);
-    assert(inboundElement.toBytes() == outboundMessage);
+    final inboundElement =
+        Element.fromBytes(Uint8List.fromList(inboundMessage.reversed.toList()));
+    //assert(inboundElement.toBytes() == outboundMessage);
 
-    final pwUnblinding = myUnblinding.scalarMult(-pwScalar);
-    final kElem = (inboundElement + pwUnblinding).scalarMult(xyScalar);
+    final pwUnblinding = myUnblinding.fastScalarMult(-pwScalar);
+    print('\nmyUnblinding = $myUnblinding');
+    print('\npwUnblinding = $pwUnblinding');
+    print('\nxyScalar = $xyScalar');
+    print('pwScalar = $pwScalar\n');
+    print('inboundMessage = $inboundMessage\n');
+    print('inboundElement = $inboundElement\n');
+    final kElem = (inboundElement + pwUnblinding).fastScalarMult(xyScalar);
+    print('kElem = $kElem');
     final kBytes = kElem.toBytes();
+    print('kBytes = $kBytes');
     final key = this.finalize(kBytes);
     return key;
   }
@@ -109,7 +132,7 @@ class Spake2 {
   Element get myBlinding => s;
   Element get myUnblinding => s;
 
-  Uint8List finalize(kBytes) {
+  Uint8List finalize(Uint8List kBytes) {
     return finalizeSpake2Symmetric(
       bytesToNumber(inboundMessage),
       bytesToNumber(outboundMessage),
@@ -130,12 +153,12 @@ void main() {
   // b.start(random);
   // print('The outbound message of b is ${b.outboundMessage}.');
 
-  // final aKey = a.finish(Uint8List.fromList([
-  //   ...[101, 182, 161, 21, 185, 17, 230, 134, 13, 114, 232, 247, 49, 161, 24],
-  //   ...[24, 165, 25, 154, 153, 79, 151, 39, 236, 193, 170, 94, 201, 91, 191],
-  //   ...[107, 68],
-  // ]));
-  // print('The key of a is $aKey.');
+  final aKey = a.finish(Uint8List.fromList([
+    ...[101, 182, 161, 21, 185, 17, 230, 134, 13, 114, 232, 247, 49, 161, 24],
+    ...[24, 165, 25, 154, 153, 79, 151, 39, 236, 193, 170, 94, 201, 91, 191],
+    ...[107, 68],
+  ]));
+  print('The key of a is $aKey.');
 
   // final bKey = b.finish(b.outboundMessage);
   // print('The key of b is $bKey.');

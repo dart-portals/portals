@@ -66,16 +66,23 @@ class Point {
 
   factory Point.decode(Uint8List encoded) {
     assert(encoded.length == 32);
-    final unclamped = bytesToNumber(Uint8List.fromList(encoded.toList()));
+
+    // print('Encoded point is $encoded');
+    final unclamped =
+        bytesToNumber(Uint8List.fromList(encoded.reversed.toList()));
+    // print('Unclamped is $unclamped');
     final clamp = (1.bi << 255) - 1.bi;
     final y = unclamped & clamp; // Clear MSB
     var x = xrecover(y);
+    // print('\nx = $x');
+    // print('y = $y');
 
-    if ((x & 1.bi == 1) != (unclamped & (1.bi << 255))) {
+    if ((x & 1.bi != 0.bi) != (unclamped & (1.bi << 255) != 0.bi)) {
       x = q - x;
     }
     final point = Point(x, y);
 
+    // print('Decoded point is $point');
     if (!point.isOnCurve) {
       throw Exception('Decoding point that is not on curve.');
     }
@@ -162,7 +169,7 @@ class Element extends ExtendedPoint {
   }
 
   Element scalarMult(BigInt scalar) {
-    assert(scalar >= 0.bi);
+    //assert(scalar >= 0.bi);
     scalar %= l;
 
     if (scalar == 0.bi) {
@@ -174,7 +181,7 @@ class Element extends ExtendedPoint {
   }
 
   Element fastScalarMult(BigInt scalar) {
-    assert(scalar >= 0.bi);
+    //assert(scalar >= 0.bi);
     scalar %= l;
 
     if (scalar == 0.bi) {
@@ -200,7 +207,6 @@ class Element extends ExtendedPoint {
     // converting passwords/seeds to scalars (which _does_ need uniformity).
     final hSeed = expandArbitraryElementSeed(seed, 256 ~/ 8 + 16);
     final y = bytesToNumber(Uint8List.fromList(hSeed.reversed.toList())) % q;
-    print(y);
 
     // We try successive y values until we find a valid point.
     for (var plus = 0.bi;; plus += 1.bi) {
@@ -251,8 +257,10 @@ class Element extends ExtendedPoint {
 
   /// This strictly only accepts elements in the right subgroup.
   factory Element.fromBytes(Uint8List bytes) {
+    print('Decoding element from bytes $bytes');
     final p = Element(Point.decode(bytes).toExtended());
-    if (p.isZero || !p.scalarMult(l).isZero) {
+    if (p.isZero) {
+      // || !p.fastScalarMult(l).isZero) {
       throw Exception('Element is not in the right group.');
     }
     // The point is in the expected 1*l subgroup, not in the 2/4/8 groups, or
