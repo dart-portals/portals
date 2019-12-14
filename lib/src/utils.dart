@@ -14,7 +14,7 @@ BigInt bytesToNumber(Uint8List bytes) {
 }
 
 Uint8List numberToBytes(BigInt number) {
-  var hexString = number.toRadixString(16).fillWithLeadingZeros(32);
+  var hexString = number.toRadixString(16).fillWithLeadingZeros(64);
 
   final bytes = <int>[];
   for (var i = 0; i < hexString.length ~/ 2; i++) {
@@ -33,4 +33,8 @@ extension ListComparator on List<int> {
     }
     return false;
   }
+}
+
+extension ToUint8ListConverter on Iterable<int> {
+  Uint8List toUint8List() => Uint8List.fromList(this.toList());
 }

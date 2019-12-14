@@ -59,9 +59,11 @@ class Point {
     assert(y >= 0.bi);
     assert(y < (1.bi << 255));
 
-    final p = (x & 1.bi == 1) ? Point(x, y + 1.bi << 255) : this;
+    final yForEncoding = (x & 1.bi != 0.bi) ? (y + (1.bi << 255)) : this.y;
 
-    return Uint8List.fromList(numberToBytes(p.y).reversed.toList());
+    print('actual y: $y');
+    print('y for encoding: $yForEncoding');
+    return numberToBytes(yForEncoding).reversed.toUint8List();
   }
 
   factory Point.decode(Uint8List encoded) {

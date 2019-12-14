@@ -86,22 +86,25 @@ class Spake2 {
     assert(!_started);
     _started = true;
 
-    // this.xyScalar = BigInt.parse(
-    //     '636300388589822600411935121714421527614733343890922194690571496772989624724');
-    this.xyScalar = Scalar.random(random);
+    this.xyScalar = BigInt.parse(
+        '6019267352642718384477389175057995968320597738885492113584218693522637723914');
+    // this.xyScalar = Scalar.random(random);
     this.xyElement = base.fastScalarMult(xyScalar);
+    print('xyElement = $xyElement');
     computeOutboundMessage();
   }
 
   void computeOutboundMessage() {
-    // print('\nmyBlinding = $myBlinding');
-    // print('pwScalar = $pwScalar');
-    var pwBlinding = myBlinding.scalarMult(pwScalar);
-    // print('\npwBlinding is $pwBlinding');
-    // print('\nxyElement is $xyElement');
+    print('\nmyBlinding = $myBlinding');
+    print('pwScalar = $pwScalar');
+    var pwBlinding = myBlinding.fastScalarMult(pwScalar);
+    print('\npwBlinding is $pwBlinding');
+    print('\nxyElement is $xyElement');
     var messageElem = xyElement + pwBlinding;
-    // print('\nmessageElem is $messageElem');
     this.outboundMessage = messageElem.toBytes();
+    print('\nmessageElem is $messageElem');
+    print('messageElem affine: ${messageElem.toAffine()}');
+    print('messageElem bytes are ${messageElem.toBytes()}');
   }
 
   Uint8List finish(Uint8List inboundMessage) {
@@ -124,7 +127,7 @@ class Spake2 {
     final kElem = (inboundElement + pwUnblinding).fastScalarMult(xyScalar);
     // print('kElem = $kElem');
     final kBytes = kElem.toBytes();
-    // print('kBytes = $kBytes');
+    print('kBytes = $kBytes');
     final key = this.finalize(kBytes);
     return key;
   }
@@ -149,18 +152,47 @@ void main() {
   a.start(random);
   print('The outbound message of a is ${a.outboundMessage}.');
 
-  final b = Spake2(utf8.encode('password'));
-  b.start(random);
-  print('The outbound message of b is ${b.outboundMessage}.');
+  // final b = Spake2(utf8.encode('password'));
+  // b.start(random);
+  // print('The outbound message of b is ${b.outboundMessage}.');
 
-  // final aKey = a.finish(Uint8List.fromList([
-  //   ...[101, 182, 161, 21, 185, 17, 230, 134, 13, 114, 232, 247, 49, 161, 24],
-  //   ...[24, 165, 25, 154, 153, 79, 151, 39, 236, 193, 170, 94, 201, 91, 191],
-  //   ...[107, 68],
-  // ]));
-  final aKey = a.finish(a.outboundMessage);
+  final aKey = a.finish(Uint8List.fromList([
+    215,
+    70,
+    84,
+    27,
+    85,
+    9,
+    112,
+    5,
+    126,
+    190,
+    5,
+    150,
+    113,
+    4,
+    189,
+    112,
+    79,
+    228,
+    191,
+    135,
+    161,
+    79,
+    121,
+    72,
+    18,
+    145,
+    109,
+    237,
+    38,
+    70,
+    118,
+    10
+  ]));
+  // final aKey = a.finish(b.outboundMessage);
   print('The key of a is $aKey.');
 
-  final bKey = b.finish(b.outboundMessage);
-  print('The key of b is $bKey.');
+  // final bKey = b.finish(a.outboundMessage);
+  // print('The key of b is $bKey.');
 }
