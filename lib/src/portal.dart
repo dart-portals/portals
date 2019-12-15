@@ -6,14 +6,14 @@ import 'package:web_socket_channel/io.dart';
 
 const _defaultRelayUrl = 'ws://relay.magic-wormhole.io:4000/v1';
 
-class Wormhole {
+class Portal {
   final String appId;
   String _side;
 
   IOWebSocketChannel _relay;
   StreamQueue<String> _relayReceiver;
 
-  Wormhole(this.appId)
+  Portal(this.appId)
       : assert(appId != null),
         assert(appId.isNotEmpty);
 

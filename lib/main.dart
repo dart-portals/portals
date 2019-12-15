@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:magic_wormhole/magic_wormhole.dart';
+import 'package:portals/portals.dart';
 
 import 'src/spake2/spake2.dart';
 
@@ -33,7 +33,7 @@ void main() {
 }
 
 Stream<String> offerWormhole() async* {
-  final wormhole = Wormhole('marcelgarus.dev');
+  final wormhole = Portal('marcelgarus.dev');
   print('Generating wormhole code...');
   final code = await wormhole.generateCode();
   print(code);
@@ -42,7 +42,7 @@ Stream<String> offerWormhole() async* {
 }
 
 Future<void> connectToWormhole(String code) async {
-  final wormhole = Wormhole('marcelgarus.dev');
+  final wormhole = Portal('marcelgarus.dev');
   print('Connecting to wormhole code...');
   await wormhole.enterCode(code);
   print('Connected.');
