@@ -1,3 +1,38 @@
+/// An implementation of the Edwards 25519 group.
+///
+/// The Edwards 25519 group (in short "Ed25519") is a group in the mathematical
+/// sense, which means it has [Element]s and [Scalar]s. You can multiply an
+/// [Element] with a [Scalar] (that's called scalar multiplication). There's
+/// also an identity [zero] element with x+0 = x.
+/// The Ed25519 group is cyclic and abelian, which means it has a finite amount
+/// of [Element]s and scalar multiplication is associative,
+/// i.e. n*(x+y) = n*x + n*y.
+/// Being cyclic comes with some cool perks. Most importantly, there's a [base]
+/// element (mathematically sometimes called "generator"). By repeatedly adding
+/// [base] to 0, we can construct every single element of the Ed25519 group.
+/// Because the group is cyclic, at some point we reach the point where we
+/// started, at 0. After that, the addition of [base] just loops around in the
+/// group. This happens after adding [base] to 0 for q=2^255-19 times.
+/// q is called the order of the group and Ed25519 got its name because of the
+/// order.
+///
+/// So, what exactly are the [Element]s and [Scalar]s of the group?
+///
+/// [Element]s are just [Point]s on this curve. From the y-coordinate, you can
+/// find out the x-coordinate.
+/// There are also [ExtendedPoint]s, which hold some additional information for
+/// convenience (and are thus four-dimensional). You can easily convert between
+/// normal [Point]s (also called "affine" points) and [ExtendedPoint]s.
+/// Extended coordinates have x, y, z and t properties and x=X/Z, y=Y/Z,
+/// x*y=T/Z. For more information, visit
+/// http://www.hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html.
+///
+/// [Scalar]s are just [BigInt]s in the inclusive range from 0 to q-1. Because
+/// there are exactly as many [Scalar]s as [Element]s, there's a one-to-one
+/// mapping between them. It's trivial to go from a scalar to an element (just
+/// calculate 0+base*scalar), but it's hard (in the cryptographic sense) to go
+/// from element to scalar.
+
 import 'dart:math';
 
 import 'dart:typed_data';
@@ -5,27 +40,13 @@ import 'dart:typed_data';
 import 'groups.dart';
 import 'utils.dart';
 
-extension _IntToBigInt on int {
-  BigInt get bi => BigInt.from(this);
-}
-
-extension _StringToBigInt on String {
-  BigInt get bi => BigInt.parse(this);
-}
-
-final q = 2.bi.pow(255) - 19.bi;
+final q = 2.bi.pow(255) - 19.bi; // The order of the group.
 final l = 2.bi.pow(252) + '27742317777372353535851937790883648493'.bi;
-
-extension _GroupBigInt on BigInt {
-  BigInt get inv => this.modPow(q - 2.bi, q);
-  BigInt get dec => this - 1.bi;
-  BigInt get squared => this * this;
-}
-
 final d = -121665.bi * 121666.bi.inv;
 final i = BigInt.two.modPow(q.dec ~/ 4.bi, q);
 
-BigInt xrecover(BigInt y) {
+/// Recovers the x-coordiante for the given y-coordinate.
+BigInt xRecover(BigInt y) {
   final xx = (y.squared - 1.bi) * (d * y.squared + 1.bi).inv;
   var x = xx.modPow((q + 3.bi) ~/ 8.bi, q);
 
@@ -42,8 +63,7 @@ BigInt xrecover(BigInt y) {
 class Point {
   Point(this.x, this.y);
 
-  final BigInt x;
-  final BigInt y;
+  final BigInt x, y;
 
   Point operator *(BigInt a) => Point(x * a, y * a);
   Point operator %(BigInt a) => Point(x % a, y % a);
@@ -61,8 +81,8 @@ class Point {
 
     final yForEncoding = (x & 1.bi != 0.bi) ? (y + (1.bi << 255)) : this.y;
 
-    print('actual y: $y');
-    print('y for encoding: $yForEncoding');
+    // print('actual y: $y');
+    // print('y for encoding: $yForEncoding');
     return numberToBytes(yForEncoding).reversed.toUint8List();
   }
 
@@ -75,7 +95,7 @@ class Point {
     // print('Unclamped is $unclamped');
     final clamp = (1.bi << 255) - 1.bi;
     final y = unclamped & clamp; // Clear MSB
-    var x = xrecover(y);
+    var x = xRecover(y);
     // print('\nx = $x');
     // print('y = $y');
 
@@ -97,10 +117,7 @@ class Point {
 class ExtendedPoint {
   ExtendedPoint(this.x, this.y, this.z, this.t);
 
-  final BigInt x;
-  final BigInt y;
-  final BigInt z;
-  final BigInt t;
+  final BigInt x, y, z, t;
 
   ExtendedPoint operator %(BigInt a) =>
       ExtendedPoint(x % a, y % a, z % a, t % a);
@@ -115,13 +132,8 @@ class ExtendedPoint {
 }
 
 final by = 4.bi * 5.bi.inv;
-final bx = xrecover(by);
+final bx = xRecover(by);
 final b = Point(bx, by) % q;
-
-void debugStuff() {}
-
-// Extended coordinates: x=X/Z, y=Y/Z, x*y=T/Z
-// http://www.hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html
 
 class Element extends ExtendedPoint {
   Element(ExtendedPoint p) : super(p.x, p.y, p.z, p.t);
@@ -213,7 +225,7 @@ class Element extends ExtendedPoint {
     // We try successive y values until we find a valid point.
     for (var plus = 0.bi;; plus += 1.bi) {
       final yPlus = (y + plus) % q;
-      final x = xrecover(yPlus);
+      final x = xRecover(yPlus);
       final pointA = Point(x, yPlus);
 
       // Only about 50 % of y coordinates map to valid curve points (I think
@@ -272,6 +284,10 @@ class Element extends ExtendedPoint {
 }
 
 extension Scalar on BigInt {
+  BigInt get inv => this.modPow(q - 2.bi, q);
+  BigInt get dec => this - 1.bi;
+  BigInt get squared => this * this;
+
   /// Scalars are encoded as 32-bytes little-endian.
   static BigInt fromBytes(Uint8List bytes) {
     assert(bytes.length == 32);
@@ -310,11 +326,3 @@ extension Scalar on BigInt {
 
 final base = Element(b.toExtended());
 final zero = Element(Point(0.bi, 1.bi).toExtended());
-
-void main() {
-  final random = Scalar.random();
-  print('Random scalar: $random');
-
-  final element = Element.arbitraryElement(Uint8List.fromList([43]));
-  print('Element. $element');
-}
