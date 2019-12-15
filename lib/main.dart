@@ -1,14 +1,35 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:magic_wormhole/magic_wormhole.dart';
 
-import 'src/spake2.dart' as spake2;
+import 'src/spake2/spake2.dart';
 
-void main() async {
+/*void main() async {
   spake2.main();
   /*final offer = offerWormhole();
   final connecter = connectToWormhole(await offer.first);
 
   await offer;
   await connecter;*/
+}*/
+
+void main() {
+  final random = Random.secure();
+
+  final a = Spake2(utf8.encode('password'));
+  final aOut = a.start(random);
+  print('The outbound message of a is $aOut.');
+
+  final b = Spake2(utf8.encode('password'));
+  final bOut = b.start(random);
+  print('The outbound message of b is $bOut.');
+
+  final aKey = a.finish(bOut);
+  print('The key of a is $aKey.');
+
+  final bKey = b.finish(aOut);
+  print('The key of b is $bKey.');
 }
 
 Stream<String> offerWormhole() async* {

@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:web_socket_channel/io.dart';
-import 'package:meta/meta.dart';
 
 const _defaultRelayUrl = 'ws://relay.magic-wormhole.io:4000/v1';
 

@@ -82,21 +82,3 @@ class Spake2 {
     return sha256(transcript);
   }
 }
-
-void main() {
-  final random = Random.secure();
-
-  final a = Spake2(utf8.encode('password'));
-  a.start(random);
-  print('The outbound message of a is ${a._outboundMessage}.');
-
-  final b = Spake2(utf8.encode('password'));
-  b.start(random);
-  print('The outbound message of b is ${b._outboundMessage}.');
-
-  final aKey = a.finish(b._outboundMessage);
-  print('The key of a is $aKey.');
-
-  final bKey = b.finish(a._outboundMessage);
-  print('The key of b is $bKey.');
-}
