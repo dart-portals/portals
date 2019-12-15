@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'dart:typed_data';
+
+import 'hkdf.dart';
 
 extension _LeadingZeros on String {
   /// Fill this string with leading zeros, so that the total length is at least
@@ -55,3 +58,23 @@ Uint8List numberToBytes(BigInt number) {
   }
   return Uint8List.fromList(bytes);
 }
+
+final _emptyBytes = Uint8List(0);
+
+Uint8List expandPassword(Uint8List data, int numBytes) =>
+    Hkdf(_emptyBytes, data).expand(ascii.encode('SPAKE2 pw'), length: numBytes);
+
+BigInt passwordToScalar(Uint8List password, int scalarSizeBytes, BigInt q) {
+  // The oversized hash reduces bias in the result, so uniformly-random
+  // passwords give nearly-uniform scalars.
+  final oversized = expandPassword(password, scalarSizeBytes + 16);
+  assert(oversized.length >= scalarSizeBytes);
+  final i = bytesToNumber(oversized.reversed.toUint8List());
+  return i % q;
+}
+
+Uint8List expandArbitraryElementSeed(Uint8List data, int numBytes) =>
+    Hkdf(_emptyBytes, data).expand(
+      ascii.encode('SPAKE2 arbitrary element'),
+      length: numBytes,
+    );

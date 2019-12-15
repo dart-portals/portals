@@ -34,10 +34,8 @@
 /// from element to scalar.
 
 import 'dart:math';
-
 import 'dart:typed_data';
 
-import 'groups.dart';
 import 'utils.dart';
 
 final q = 2.bi.pow(255) - 19.bi; // The order of the group.
