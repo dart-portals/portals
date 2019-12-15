@@ -46,14 +46,14 @@ final d = -121665.bi * 121666.bi.inv;
 final i = BigInt.two.modPow((q - 1.bi) ~/ 4.bi, q);
 
 final by = 4.bi * 5.bi.inv;
-final bx = xRecover(by);
+final bx = _xRecover(by);
 final b = Point(bx, by) % q;
 
 final base = Element(b.toExtended());
 final zero = Element(Point(0.bi, 1.bi).toExtended());
 
 /// Recovers the x-coordiante for the given y-coordinate.
-BigInt xRecover(BigInt y) {
+BigInt _xRecover(BigInt y) {
   final xx = (y.squared - 1.bi) * (d * y.squared + 1.bi).inv;
   var x = xx.modPow((q + 3.bi) ~/ 8.bi, q);
 
@@ -99,7 +99,7 @@ class Point {
     final unclamped = Scalar.fromBytes(encoded.reversed.toUint8List());
     final clamp = (1.bi << 255) - 1.bi;
     final y = unclamped & clamp; // Clear MSB
-    var x = xRecover(y);
+    var x = _xRecover(y);
 
     if ((x & 1.bi != 0.bi) != (unclamped & (1.bi << 255) != 0.bi)) {
       x = q - x;
@@ -165,6 +165,7 @@ class Element extends ExtendedPoint {
     return Element(ExtendedPoint(f * g, h * i, g * h, f * i) % q);
   }
 
+  // Faster version of multiplying with 2.
   Element doubleElement() {
     final a = x.squared;
     final b = y.squared;
@@ -175,7 +176,6 @@ class Element extends ExtendedPoint {
     final g = (d + b) % q;
     final f = (g - c) % q;
     final h = (d - b) % q;
-
     return Element(ExtendedPoint(e * f, g * h, f * g, e * h) % q);
   }
 
@@ -223,12 +223,12 @@ class Element extends ExtendedPoint {
     // to q. But it's comforting, and it's the same technique we use for
     // converting passwords/seeds to scalars (which _does_ need uniformity).
     final hSeed = expandArbitraryElementSeed(seed, 256 ~/ 8 + 16);
-    final y = bytesToNumber(Uint8List.fromList(hSeed.reversed.toList())) % q;
+    final y = bytesToNumber(hSeed.reversed.toUint8List()) % q;
 
     // We try successive y values until we find a valid point.
     for (var plus = 0.bi;; plus += 1.bi) {
       final yPlus = (y + plus) % q;
-      final x = xRecover(yPlus);
+      final x = _xRecover(yPlus);
       final pointA = Point(x, yPlus);
 
       // Only about 50 % of y coordinates map to valid curve points (I think
@@ -274,8 +274,9 @@ class Element extends ExtendedPoint {
 }
 
 extension Scalar on BigInt {
+  /// The inversion of this scalar.
   BigInt get inv => this.modPow(q - 2.bi, q);
-  BigInt get dec => this - 1.bi;
+
   BigInt get squared => this * this;
 
   /// Scalars are encoded as 32-bytes little-endian.
