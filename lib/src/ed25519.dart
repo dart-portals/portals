@@ -43,7 +43,14 @@ import 'utils.dart';
 final q = 2.bi.pow(255) - 19.bi; // The order of the group.
 final l = 2.bi.pow(252) + '27742317777372353535851937790883648493'.bi;
 final d = -121665.bi * 121666.bi.inv;
-final i = BigInt.two.modPow(q.dec ~/ 4.bi, q);
+final i = BigInt.two.modPow((q - 1.bi) ~/ 4.bi, q);
+
+final by = 4.bi * 5.bi.inv;
+final bx = xRecover(by);
+final b = Point(bx, by) % q;
+
+final base = Element(b.toExtended());
+final zero = Element(Point(0.bi, 1.bi).toExtended());
 
 /// Recovers the x-coordiante for the given y-coordinate.
 BigInt xRecover(BigInt y) {
@@ -60,20 +67,22 @@ BigInt xRecover(BigInt y) {
   return x;
 }
 
+/// A two dimensional point.
 class Point {
   Point(this.x, this.y);
 
   final BigInt x, y;
 
-  Point operator *(BigInt a) => Point(x * a, y * a);
-  Point operator %(BigInt a) => Point(x % a, y % a);
+  Point operator *(BigInt n) => Point(x * n, y * n);
+  Point operator %(BigInt n) => Point(x % n, y % n);
 
   ExtendedPoint toExtended() => ExtendedPoint(x, y, 1.bi, x * y) % q;
 
+  /// Whether this point is on the Edwards curve.
   bool get isOnCurve =>
       (-x.squared + y.squared - 1.bi - d * x.squared * y.squared) % q == 0.bi;
 
-  Uint8List encode() {
+  Uint8List toBytes() {
     // Points are encoded as 32-bytes little-endian, b255 is sign, b2b1b0 are 0.
     // MSB of ouput equals x.b0 = x&1. Rest of output is little-endian y.
     assert(y >= 0.bi);
@@ -81,30 +90,22 @@ class Point {
 
     final yForEncoding = (x & 1.bi != 0.bi) ? (y + (1.bi << 255)) : this.y;
 
-    // print('actual y: $y');
-    // print('y for encoding: $yForEncoding');
     return numberToBytes(yForEncoding).reversed.toUint8List();
   }
 
-  factory Point.decode(Uint8List encoded) {
+  factory Point.fromBytes(Uint8List encoded) {
     assert(encoded.length == 32);
 
-    // print('Encoded point is $encoded');
-    final unclamped =
-        bytesToNumber(Uint8List.fromList(encoded.reversed.toList()));
-    // print('Unclamped is $unclamped');
+    final unclamped = Scalar.fromBytes(encoded.reversed.toUint8List());
     final clamp = (1.bi << 255) - 1.bi;
     final y = unclamped & clamp; // Clear MSB
     var x = xRecover(y);
-    // print('\nx = $x');
-    // print('y = $y');
 
     if ((x & 1.bi != 0.bi) != (unclamped & (1.bi << 255) != 0.bi)) {
       x = q - x;
     }
     final point = Point(x, y);
 
-    // print('Decoded point is $point');
     if (!point.isOnCurve) {
       throw Exception('Decoding point that is not on curve.');
     }
@@ -119,21 +120,18 @@ class ExtendedPoint {
 
   final BigInt x, y, z, t;
 
-  ExtendedPoint operator %(BigInt a) =>
-      ExtendedPoint(x % a, y % a, z % a, t % a);
   ExtendedPoint operator +(ExtendedPoint p) =>
       ExtendedPoint(x + p.x, y + p.y, z + p.z, t + p.t);
+  ExtendedPoint operator %(BigInt a) =>
+      ExtendedPoint(x % a, y % a, z % a, t % a);
 
+  /// Converts this extended point into a normal ("affine") [Point].
   Point toAffine() => Point(x, y) * z.inv % q;
 
   bool get isZero => x == 0 && y % q == z % q && y != 0;
 
   String toString() => '($x, $y, $z, $t)';
 }
-
-final by = 4.bi * 5.bi.inv;
-final bx = xRecover(by);
-final b = Point(bx, by) % q;
 
 class Element extends ExtendedPoint {
   Element(ExtendedPoint p) : super(p.x, p.y, p.z, p.t);
@@ -168,7 +166,6 @@ class Element extends ExtendedPoint {
   }
 
   Element doubleElement() {
-    // dbl-2008-hwcd
     final a = x.squared;
     final b = y.squared;
     final c = 2.bi * z.squared;
@@ -183,29 +180,20 @@ class Element extends ExtendedPoint {
   }
 
   Element scalarMult(BigInt scalar) {
-    //assert(scalar >= 0.bi);
     scalar %= l;
+    if (scalar == 0.bi) return zero;
 
-    if (scalar == 0.bi) {
-      return Element(Point(0.bi, 1.bi).toExtended());
-    }
     final a = this.scalarMult(scalar >> 1).doubleElement();
-    final result = (scalar & 1.bi != 0.bi) ? (a + this) : a;
-    return result;
+    return (scalar & 1.bi != 0.bi) ? (a + this) : a;
   }
 
   Element fastScalarMult(BigInt scalar) {
-    //assert(scalar >= 0.bi);
     scalar %= l;
+    if (scalar == 0.bi) return zero;
 
-    if (scalar == 0.bi) {
-      return Element(Point(0.bi, 1.bi).toExtended());
-    }
     final a = this.fastScalarMult(scalar >> 1).doubleElement();
     return (scalar & 1.bi != 0.bi) ? a.fastAdd(this) : a;
   }
-
-  Uint8List toBytes() => this.toAffine().encode();
 
   Element negate() => Element(this.scalarMult(l - 2.bi));
 
@@ -213,6 +201,21 @@ class Element extends ExtendedPoint {
   operator ==(Object other) =>
       other is Element &&
       other.toBytes().toString() == this.toBytes().toString();
+
+  Uint8List toBytes() => this.toAffine().toBytes();
+
+  /// This strictly only accepts elements in the right subgroup.
+  factory Element.fromBytes(Uint8List bytes) {
+    // print('Decoding element from bytes $bytes');
+    final p = Element(Point.fromBytes(bytes).toExtended());
+    if (p.isZero) {
+      // || !p.fastScalarMult(l).isZero) {
+      throw Exception('Element is not in the right group.');
+    }
+    // The point is in the expected 1*l subgroup, not in the 2/4/8 groups, or
+    // in the 2*l/4*l/8*l groups.
+    return p;
+  }
 
   factory Element.arbitraryElement(Uint8List seed) {
     // We don't strictly need the uniformity provided by hashing to an
@@ -268,19 +271,6 @@ class Element extends ExtendedPoint {
       return Element(p8);
     }
   }
-
-  /// This strictly only accepts elements in the right subgroup.
-  factory Element.fromBytes(Uint8List bytes) {
-    // print('Decoding element from bytes $bytes');
-    final p = Element(Point.decode(bytes).toExtended());
-    if (p.isZero) {
-      // || !p.fastScalarMult(l).isZero) {
-      throw Exception('Element is not in the right group.');
-    }
-    // The point is in the expected 1*l subgroup, not in the 2/4/8 groups, or
-    // in the 2*l/4*l/8*l groups.
-    return p;
-  }
 }
 
 extension Scalar on BigInt {
@@ -300,11 +290,11 @@ extension Scalar on BigInt {
     // - Low-order 3 bits are zero, so a small-subgroup attack won't learn any
     //   information.
     // Set the top two bits to 01, and the bottom three to 000.
-    final aUnclamped = fromBytes(bytes);
+    final unclamped = fromBytes(bytes);
     final andClamp = (1.bi << 254) - 1.bi - 7.bi;
     final orClamp = (1.bi << 254);
-    final aClamped = (aUnclamped & andClamp) | orClamp;
-    return aClamped;
+    final clamped = (unclamped & andClamp) | orClamp;
+    return clamped;
   }
 
   Uint8List toBytes() {
@@ -316,13 +306,10 @@ extension Scalar on BigInt {
 
   static random([Random random]) {
     random ??= Random.secure();
-    // Reduce the bias to a safe level by generating 256 extra bits.
+    // Reduce the bias to a safe level by generating some extra bits.
     final oversized = bytesToNumber(Uint8List.fromList([
-      for (var i = 0; i < 64; i++) random.nextInt(64),
+      for (var i = 0; i < 255; i++) random.nextInt(64),
     ]));
     return oversized % l;
   }
 }
-
-final base = Element(b.toExtended());
-final zero = Element(Point(0.bi, 1.bi).toExtended());
