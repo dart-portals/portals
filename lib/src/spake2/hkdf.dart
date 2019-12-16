@@ -2,8 +2,10 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 
+import 'utils.dart';
+
 Uint8List _extract(Uint8List salt, Uint8List inputKeyMaterial) {
-  salt ??= List.filled(sha256.blockSize, 0);
+  salt ??= List.filled(sha256.blockSize, 0).toUint8List();
   return Hmac(sha256, salt).convert(inputKeyMaterial).bytes;
 }
 
@@ -28,8 +30,12 @@ Uint8List _expand(Uint8List key, Uint8List info, int length) {
   return Uint8List.fromList(shortenedList);
 }
 
+Uint8List hkdf(Uint8List salt, Uint8List inputKeyMaterial) {
+  final _prk = _extract(salt, inputKeyMaterial);
+}
+
 class Hkdf {
-  Uint8List _prk;
+  final Uint8List _prk;
 
   Hkdf(Uint8List salt, Uint8List inputKeyMaterial)
       : _prk = _extract(salt, inputKeyMaterial);

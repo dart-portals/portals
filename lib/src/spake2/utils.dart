@@ -1,14 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../utils.dart';
 import 'hkdf.dart';
-
-extension _LeadingZeros on String {
-  /// Fill this string with leading zeros, so that the total length is at least
-  /// [length].
-  fillWithLeadingZeros(int length) =>
-      '${[for (var i = length - this.length; i > 0; i--) '0'].join()}$this';
-}
 
 extension ListComparator on List<int> {
   /// Compares this list with the other one. The smaller list is the one with
@@ -42,21 +36,11 @@ extension StringToBigInt on String {
 }
 
 BigInt bytesToNumber(Uint8List bytes) {
-  final hexString = bytes.reversed
-      .map((byte) => byte.toRadixString(16).fillWithLeadingZeros(2))
-      .join('');
-  return BigInt.parse(hexString, radix: 16);
+  return BigInt.parse(bytesToHex(bytes.reversed.toUint8List()), radix: 16);
 }
 
 Uint8List numberToBytes(BigInt number) {
-  var hexString = number.toRadixString(16).fillWithLeadingZeros(64);
-
-  final bytes = <int>[];
-  for (var i = 0; i < hexString.length ~/ 2; i++) {
-    final byteString = hexString.substring(2 * i, 2 * i + 2);
-    bytes.add(int.parse(byteString, radix: 16));
-  }
-  return Uint8List.fromList(bytes);
+  return hexToBytes(number.toRadixString(16).fillWithLeadingZeros(64));
 }
 
 final _emptyBytes = Uint8List(0);

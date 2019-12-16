@@ -10,6 +10,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:meta/meta.dart';
 
 import 'ed25519.dart';
 import 'utils.dart';
@@ -21,6 +22,7 @@ final s = Element.arbitraryElement(ascii.encode('symmetric'));
 
 /// This class manages one side of a spake2 key negotiation.
 class Spake2 {
+  final Uint8List id;
   final Uint8List password;
   final BigInt _pwScalar;
   BigInt _xyScalar;
@@ -31,7 +33,12 @@ class Spake2 {
   bool _started = false;
   bool _finished = false;
 
-  Spake2(this.password) : _pwScalar = passwordToScalar(password, 32, l);
+  Spake2({@required this.id, @required this.password})
+      : assert(id != null),
+        assert(id.isNotEmpty),
+        assert(password != null),
+        assert(password.isNotEmpty),
+        _pwScalar = passwordToScalar(password, 32, l);
 
   Uint8List start([Random random]) {
     assert(!_started);
@@ -74,7 +81,7 @@ class Spake2 {
 
     final transcript = <int>[
       ...sha256(password),
-      ...sha256([]),
+      ...sha256(id),
       ...firstMsg,
       ...secondMsg,
       ...kBytes,
