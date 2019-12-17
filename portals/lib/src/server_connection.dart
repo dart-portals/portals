@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:async/async.dart';
 import 'package:meta/meta.dart';
 import 'package:pinenacl/secret.dart';
+import 'package:portals/src/code_generators/code_generator.dart';
 import 'package:portals/src/errors.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -61,7 +62,9 @@ class MailboxConnection {
     @required String url,
     @required this.appId,
     String nameplate,
-  })  : _connection = ServerConnection(url: url),
+  })  : assert(appId != null),
+        assert(appId.isNotEmpty),
+        _connection = ServerConnection(url: url),
         _nameplate = nameplate;
 
   final ServerConnection _connection;
@@ -150,7 +153,8 @@ class EncryptedMailboxConnection {
     @required this.mailbox,
     @required this.key,
   })  : assert(mailbox != null),
-        assert(key != null);
+        assert(key != null),
+        assert(key.isNotEmpty);
 
   final MailboxConnection mailbox;
   final Uint8List key;
@@ -189,7 +193,7 @@ class EncryptedMailboxConnection {
     mailbox.send(phase: phase, message: encrypted);
   }
 
-  Future<String> receiveMessage({String phase}) async {
+  Future<String> receive({@required String phase}) async {
     final message = await mailbox.receive(phase: phase);
     return utf8.decode(_decryptData(
       key: _derivePhaseKey(message['side'], message['phase']),
@@ -198,4 +202,98 @@ class EncryptedMailboxConnection {
   }
 }
 
-//class DilationServerConnection
+/// A connection that establishes an [EncryptedMailboxConnection] by using a
+/// code that contains information about the nameplate and short key.
+class EncodedMailboxConnection {
+  EncodedMailboxConnection({
+    @required this.url,
+    @required this.appId,
+    @required this.codeGenerator,
+    String code,
+  })  : assert(url != null),
+        assert(url.isNotEmpty),
+        assert(appId != null),
+        assert(appId.isNotEmpty),
+        assert(codeGenerator != null),
+        assert(code == null || code.isNotEmpty),
+        _code = code;
+
+  static const keyLength = 2;
+
+  final String url;
+  final String appId;
+  final CodeGenerator codeGenerator;
+
+  String _code;
+  String get code => _code;
+
+  MailboxConnection _mailbox;
+  EncryptedMailboxConnection _encrypted;
+
+  Uint8List _key;
+  Uint8List get keyHash => sha256(_key);
+
+  Future<void> initialize() async {
+    Uint8List nameplate;
+    Uint8List shortKey;
+
+    if (_code == null) {
+      _mailbox = MailboxConnection(url: url, appId: appId);
+      await _mailbox.initialize();
+
+      nameplate = utf8.encode(_mailbox.nameplate);
+      shortKey = generateShortKey();
+
+      _code = codeGenerator.payloadToCode(CodePayload(
+        nameplate: nameplate,
+        key: shortKey,
+      ));
+    } else {
+      final payload = codeGenerator.codeToPayload(_code);
+      nameplate = payload.nameplate;
+      shortKey = payload.key;
+
+      _mailbox = MailboxConnection(
+        url: url,
+        appId: appId,
+        nameplate: utf8.decode(nameplate),
+      );
+      await _mailbox.initialize();
+    }
+
+    _key = await _agreeOnKey(shortKey);
+    _encrypted = EncryptedMailboxConnection(
+      mailbox: _mailbox,
+      key: _key,
+    );
+  }
+
+  static Uint8List generateShortKey() {
+    final random = Random.secure();
+    return [
+      for (int i = 0; i < keyLength; i++) random.nextInt(256),
+    ].toUint8List();
+  }
+
+  Future<Uint8List> _agreeOnKey(Uint8List shortKey) async {
+    // Exchange pake messages.
+    final spake = Spake2(id: utf8.encode(appId), password: shortKey);
+    final outbound = spake.start();
+    await _mailbox.send(
+      phase: 'pake',
+      message: json.encode({'pake_v1': bytesToHex(outbound)}),
+    );
+    final inboundMessage =
+        json.decode((await _mailbox.receive(phase: 'pake'))['body']);
+    final inboundBytes = hexToBytes(inboundMessage['pake_v1']);
+    return spake.finish(inboundBytes);
+  }
+
+  Future<void> send({@required String phase, @required String message}) async {
+    _encrypted.send(phase: phase, message: message);
+  }
+
+  Future<String> receive({@required String phase}) async {
+    return await _encrypted.receive(phase: phase);
+  }
+}
