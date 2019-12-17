@@ -15,48 +15,32 @@ enum Mood { lonely, happy, scared, errorly }
 
 class Portal {
   // TODO: enable timing, versions
-  Portal(this.appId, {String relayUrl = _defaultRelayUrl})
+  Portal(this.appId, {this.relayUrl = _defaultRelayUrl})
       : assert(appId != null),
         assert(appId.isNotEmpty),
         assert(relayUrl != null),
-        assert(relayUrl.isNotEmpty),
-        _connection = ServerConnection(relayUrl);
+        assert(relayUrl.isNotEmpty);
 
   final String appId;
-
-  ServerConnection _connection;
-  EncryptedServerConnection _encryptedConnection;
+  final String relayUrl;
 
   Mood _mood = Mood.lonely;
   Mood get mood => _mood;
 
-  String _code;
-  String get code => _code;
+  MailboxConnection _mailbox;
+  EncryptedMailboxConnection _encryptedMailbox;
 
-  String _side;
   String _key;
 
-  SecretBox _box;
-
-  Future<void> _initialize() async {
-    _side = Random.secure().nextInt(123456789).toRadixString(16);
-
-    await _connection.initialize();
-    await _connection.welcomeAndBind(appId, _side);
-  }
-
   Future<String> open() async {
-    await _initialize();
-    final nameplate = await _connection.allocate();
-    final mailbox = await _connection.claimNameplate(nameplate);
-    await _connection.openMailbox(mailbox);
+    _mailbox = MailboxConnection(url: relayUrl, appId: appId);
+    await _mailbox.initialize();
 
     // TODO: refactor key generation to somewhere else
     _key = [
       for (var i = 0; i < 3; i++) 'abc'[Random.secure().nextInt(3)],
     ].join();
-    _code = '$nameplate-$_key';
-    return _code;
+    return '${_mailbox.nameplate}-$_key';
   }
 
   Future<Uint8List> waitForLink() async {
@@ -73,41 +57,43 @@ class Portal {
     _key = code.substring(dash + 1);
     print('Key is $_key');
 
-    await _initialize();
-    final mailbox = await _connection.claimNameplate(nameplate);
-    await _connection.openMailbox(mailbox);
+    _mailbox = MailboxConnection(
+      url: relayUrl,
+      appId: appId,
+      nameplate: nameplate,
+    );
+    await _mailbox.initialize();
 
     print('Linking to $code');
     return await _setupLink();
   }
 
   Future<Uint8List> _setupLink() async {
-    // Exchange spake messages.
+    // Exchange pake messages.
     final spake = Spake2(id: utf8.encode(appId), password: utf8.encode(_key));
     final outbound = spake.start();
-    await _connection.sendMessage(
-      json.encode({'pake_v1': bytesToHex(outbound)}),
+    await _mailbox.send(
       phase: 'pake',
+      message: json.encode({'pake_v1': bytesToHex(outbound)}),
     );
     final inboundMessage =
-        json.decode((await _connection.receiveMessage(_side))['body']);
+        json.decode((await _mailbox.receive(phase: 'pake'))['body']);
     final inboundBytes = hexToBytes(inboundMessage['pake_v1']);
     final sharedKey = spake.finish(inboundBytes);
 
     print('Shared key is $sharedKey');
-    _encryptedConnection = EncryptedServerConnection(
-      connection: _connection,
+    _encryptedMailbox = EncryptedMailboxConnection(
+      mailbox: _mailbox,
       key: sharedKey,
-      side: _side,
     );
 
     // We now got a shared key. Exchange version information.
     // TODO: Use version information.
-    await _encryptedConnection.sendMessage(
-      json.encode({'app_version': '1.0.0'}),
+    await _encryptedMailbox.send(
       phase: 'version',
+      message: json.encode({'app_version': '1.0.0'}),
     );
-    final version = await _encryptedConnection.receiveMessage(phase: 'version');
+    final version = await _encryptedMailbox.receiveMessage(phase: 'version');
     print('Version is $version');
 
     return sha256(sharedKey);

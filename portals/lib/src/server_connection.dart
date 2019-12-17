@@ -1,33 +1,43 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:async/async.dart';
 import 'package:meta/meta.dart';
 import 'package:pinenacl/secret.dart';
+import 'package:portals/src/errors.dart';
 import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'spake2/hkdf.dart';
 import 'spake2/spake2.dart';
 import 'utils.dart';
 
+/// A simple connection to the server.
+///
+/// Offers send and receive calls for communicating with the server using json.
 class ServerConnection {
-  ServerConnection(this.relayUrl)
-      : assert(relayUrl != null),
-        assert(relayUrl.isNotEmpty);
+  ServerConnection({@required this.url})
+      : assert(url != null),
+        assert(url.isNotEmpty);
 
-  final String relayUrl;
+  final String url;
 
   IOWebSocketChannel _relay;
   StreamQueue<String> _relayReceiver;
 
   Future<void> initialize() async {
-    _relay = IOWebSocketChannel.connect(relayUrl);
-    _relayReceiver = StreamQueue<String>(_relay.stream.cast<String>());
+    try {
+      _relay = IOWebSocketChannel.connect(url);
+      _relayReceiver = StreamQueue<String>(_relay.stream.cast<String>());
+    } on WebSocketChannelException {
+      throw PortalCannotConnectToServerException();
+    }
   }
 
-  void _send(Map<String, dynamic> data) => _relay.sink.add(json.encode(data));
+  void send(Map<String, dynamic> data) => _relay.sink.add(json.encode(data));
 
-  Future<Map<String, dynamic>> _receive({String type}) async {
+  Future<Map<String, dynamic>> receive({String type}) async {
     while (true) {
       final response =
           json.decode(await _relayReceiver.next) as Map<String, dynamic>;
@@ -37,68 +47,113 @@ class ServerConnection {
       if (response['type'] != 'ack') print(response);
     }
   }
+}
 
-  Future<void> welcomeAndBind(String appId, String side) async {
-    final welcomeMessage = await _receive(type: 'welcome');
+/// A mailbox connection over the server.
+///
+/// Connects to the server and opens a mailbox.
+/// Offers sending and receiving messages for communicating with other clients
+/// connected to the same mailbox.
+class MailboxConnection {
+  /// Each mailbox has a [nameplate]. If one is provided, we try to connect to
+  /// that mailbox. Otherwise, we'll allocate a new mailbox.
+  MailboxConnection({
+    @required String url,
+    @required this.appId,
+    String nameplate,
+  })  : _connection = ServerConnection(url: url),
+        _nameplate = nameplate;
+
+  final ServerConnection _connection;
+  final String appId;
+
+  String _nameplate;
+  String get nameplate => _nameplate;
+
+  String _side;
+  String get side => _side;
+
+  Future<void> initialize() async {
+    await _connection.initialize();
+
+    // Each client connected to the mailbox has a side. Messages have a "side"
+    // attribute, so the side can be used to filter for messages that others
+    // sent.
+    // If two clients have the same side, that's bad – they'll just ignore
+    // everything. So, we choose a reasonably large random string for a side.
+    final random = Random();
+    _side = [
+      for (int i = 0; i < 10; i++) random.nextInt(16).toRadixString(16),
+    ].join();
+
+    await _receiveWelcome();
+    _bindToAppIdAndSide();
+
+    _nameplate ??= await _allocateNameplate();
+    final mailbox = await _claimNameplate(nameplate);
+    await _openMailbox(mailbox);
+  }
+
+  Future<void> _receiveWelcome() async {
+    final welcomeMessage = await _connection.receive(type: 'welcome');
+    // TODO: throw server errors
     assert(!(welcomeMessage['welcome'] as Map<String, dynamic>)
         .containsKey('error'));
-    _send({'type': 'bind', 'appid': appId, 'side': side});
+  }
+
+  void _bindToAppIdAndSide() {
+    _connection.send({'type': 'bind', 'appid': appId, 'side': _side});
   }
 
   // TODO: handle non-successful claims
-  Future<String> claimNameplate(String nameplate) async {
-    _send({'type': 'claim', 'nameplate': nameplate});
-    final claim = await _receive(type: 'claimed');
+  Future<String> _claimNameplate(String nameplate) async {
+    _connection.send({'type': 'claim', 'nameplate': nameplate});
+    final claim = await _connection.receive(type: 'claimed');
 
     final mailbox = claim['mailbox'] as String;
     assert(mailbox != null);
     return mailbox;
   }
 
-  Future<String> allocate() async {
-    _send({'type': 'allocate'});
-    final allocation = await _receive(type: 'allocated');
+  Future<String> _allocateNameplate() async {
+    _connection.send({'type': 'allocate'});
+    final allocation = await _connection.receive(type: 'allocated');
 
     final nameplate = allocation['nameplate'] as String;
     assert(nameplate != null);
     return nameplate;
   }
 
-  Future<void> openMailbox(String mailbox) async {
-    _send({'type': 'open', 'mailbox': mailbox});
+  void _openMailbox(String mailbox) {
+    _connection.send({'type': 'open', 'mailbox': mailbox});
   }
 
-  void sendMessage(String message, {@required String phase}) async {
+  void send({@required String phase, @required String message}) async {
     assert(phase != null);
-    _send({'type': 'add', 'phase': phase, 'body': message});
+    _connection.send({'type': 'add', 'phase': phase, 'body': message});
   }
 
-  Future<Map<String, dynamic>> receiveMessage(
-    String mySide, {
-    String phase,
-  }) async {
+  Future<Map<String, dynamic>> receive({@required String phase}) async {
     Map<String, dynamic> response;
     while (true) {
-      response = await _receive(type: 'message');
-      if (response['side'] == mySide) continue;
+      response = await _connection.receive(type: 'message');
+      if (response['side'] == _side) continue;
       if (phase == null || response['phase'] == phase) break;
     }
     return response;
   }
 }
 
-class EncryptedServerConnection {
-  EncryptedServerConnection({
-    @required this.connection,
+/// An encrypted connection over a mailbox.
+class EncryptedMailboxConnection {
+  EncryptedMailboxConnection({
+    @required this.mailbox,
     @required this.key,
-    @required this.side,
-  })  : assert(connection != null),
-        assert(key != null),
-        assert(side != null);
+  })  : assert(mailbox != null),
+        assert(key != null);
 
-  final ServerConnection connection;
+  final MailboxConnection mailbox;
   final Uint8List key;
-  final String side;
 
   Uint8List _deriveKey(Uint8List purpose) =>
       Hkdf(null, key).expand(purpose, length: SecretBox.keyLength);
@@ -107,9 +162,7 @@ class EncryptedServerConnection {
     final sideHash = bytesToHex(sha256(ascii.encode(side)));
     final phaseHash = bytesToHex(sha256(ascii.encode(phase)));
     final purpose = 'wormhole:phase:$sideHash$phaseHash';
-    final theKey = _deriveKey(ascii.encode(purpose));
-    // print('Purpose $purpose generates key $theKey');
-    return theKey;
+    return _deriveKey(ascii.encode(purpose));
   }
 
   Uint8List _encryptData({@required Uint8List key, @required Uint8List data}) {
@@ -128,19 +181,21 @@ class EncryptedServerConnection {
     return SecretBox(key).decrypt(encrypted);
   }
 
-  Future<void> sendMessage(String message, {@required String phase}) async {
+  Future<void> send({@required String phase, @required String message}) async {
     final encrypted = bytesToHex(_encryptData(
-      key: _derivePhaseKey(side, phase),
+      key: _derivePhaseKey(mailbox.side, phase),
       data: utf8.encode(message),
     ));
-    connection.sendMessage(encrypted, phase: phase);
+    mailbox.send(phase: phase, message: encrypted);
   }
 
   Future<String> receiveMessage({String phase}) async {
-    final message = await connection.receiveMessage(side, phase: phase);
+    final message = await mailbox.receive(phase: phase);
     return utf8.decode(_decryptData(
       key: _derivePhaseKey(message['side'], message['phase']),
       encryptedBytes: hexToBytes(message['body']),
     ));
   }
 }
+
+//class DilationServerConnection
