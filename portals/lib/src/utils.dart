@@ -1,5 +1,10 @@
 import 'dart:typed_data';
 
+extension ToUint8ListConverter on Iterable<int> {
+  /// Turns this [Iterable<int>] into a [Uint8List].
+  Uint8List toUint8List() => Uint8List.fromList(this.toList());
+}
+
 extension LeadingZeros on String {
   /// Fill this string with leading zeros, so that the total length is at least
   /// [length].
@@ -19,5 +24,5 @@ Uint8List hexToBytes(String hexString) {
     final byteString = hexString.substring(2 * i, 2 * i + 2);
     bytes.add(int.parse(byteString, radix: 16));
   }
-  return Uint8List.fromList(bytes);
+  return bytes.toUint8List();
 }

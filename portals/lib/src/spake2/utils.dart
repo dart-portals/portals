@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import '../utils.dart';
 import 'hkdf.dart';
 
+export '../utils.dart';
+
 extension ListComparator on List<int> {
   /// Compares this list with the other one. The smaller list is the one with
   /// the smaller element at the first position where the elements of the two
@@ -18,11 +20,6 @@ extension ListComparator on List<int> {
     }
     return false; // All elements are equal.
   }
-}
-
-extension ToUint8ListConverter on Iterable<int> {
-  /// Turns this [Iterable<int>] into a [Uint8List].
-  Uint8List toUint8List() => Uint8List.fromList(this.toList());
 }
 
 extension IntToBigInt on int {
