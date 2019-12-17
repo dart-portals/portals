@@ -30,10 +30,6 @@ Uint8List _expand(Uint8List key, Uint8List info, int length) {
   return Uint8List.fromList(shortenedList);
 }
 
-Uint8List hkdf(Uint8List salt, Uint8List inputKeyMaterial) {
-  final _prk = _extract(salt, inputKeyMaterial);
-}
-
 class Hkdf {
   final Uint8List _prk;
 
