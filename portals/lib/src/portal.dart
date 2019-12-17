@@ -1,12 +1,12 @@
 import 'dart:convert';
-import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
+
+import 'client_connection.dart';
 import 'code_generators/code_generator.dart';
 import 'code_generators/hex.dart';
 import 'server_connection.dart';
-import 'spake2/spake2.dart';
-import 'utils.dart';
 
 const _defaultRelayUrl = 'ws://relay.magic-wormhole.io:4000/v1';
 const _defaultCodeGenerator = HexCodeGenerator();
@@ -19,7 +19,7 @@ class Portal {
   Portal(
     this.appId, {
     this.relayUrl = _defaultRelayUrl,
-    this.codeGenerator,
+    this.codeGenerator = _defaultCodeGenerator,
   })  : assert(appId != null),
         assert(appId.isNotEmpty),
         assert(relayUrl != null),
@@ -32,17 +32,26 @@ class Portal {
   Mood _mood = Mood.lonely;
   Mood get mood => _mood;
 
-  CodeEncryptedMailboxConnection _mailbox;
+  Uint8List _shortKey;
+
+  Uint8List _keyHash;
+  Uint8List get keyHash => _keyHash;
+
+  MailboxConnection _mailbox;
+  DilatedConnection _client;
 
   Future<String> open() async {
-    _mailbox = CodeEncryptedMailboxConnection(
+    _mailbox = MailboxConnection(
       url: relayUrl,
       appId: appId,
-      codeGenerator: codeGenerator,
     );
     await _mailbox.initialize();
 
-    return _mailbox.code;
+    _shortKey = CodeGenerator.generateShortKey();
+    return codeGenerator.payloadToCode(CodePayload(
+      nameplate: utf8.encode(_mailbox.nameplate),
+      key: _shortKey,
+    ));
   }
 
   Future<Uint8List> waitForLink() async {
@@ -50,11 +59,13 @@ class Portal {
   }
 
   Future<Uint8List> openAndLinkTo(String code) async {
-    _mailbox = CodeEncryptedMailboxConnection(
+    final payload = codeGenerator.codeToPayload(code);
+    _shortKey = payload.key;
+
+    _mailbox = MailboxConnection(
       url: relayUrl,
       appId: appId,
-      codeGenerator: codeGenerator,
-      code: code,
+      nameplate: utf8.decode(payload.nameplate),
     );
     await _mailbox.initialize();
 
@@ -63,15 +74,17 @@ class Portal {
   }
 
   Future<Uint8List> _setupLink() async {
-    // We now got a shared key. Exchange version information.
-    // TODO: Use version information.
-    await _mailbox.send(
-      phase: 'version',
-      message: json.encode({'app_version': '1.0.0'}),
+    // Create an encrypted connection over the mailbox and save its key hash.
+    final encryptedMailbox = EncryptedMailboxConnection(
+      mailbox: _mailbox,
+      shortKey: _shortKey,
     );
-    final version = await _mailbox.receive(phase: 'version');
-    print('Version is $version');
+    await encryptedMailbox.initialize();
+    _keyHash = encryptedMailbox.computeKeyHash();
 
-    return _mailbox.keyHash;
+    // Try several connections to the other client.
+    _client = DilatedConnection(mailbox: encryptedMailbox);
+
+    return _keyHash;
   }
 }

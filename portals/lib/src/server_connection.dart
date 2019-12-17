@@ -17,8 +17,8 @@ import 'utils.dart';
 /// A simple connection to the server.
 ///
 /// Offers send and receive calls for communicating with the server using json.
-class ServerConnection {
-  ServerConnection({@required this.url})
+class _ServerConnection {
+  _ServerConnection({@required this.url})
       : assert(url != null),
         assert(url.isNotEmpty);
 
@@ -64,10 +64,10 @@ class MailboxConnection {
     String nameplate,
   })  : assert(appId != null),
         assert(appId.isNotEmpty),
-        _connection = ServerConnection(url: url),
+        _connection = _ServerConnection(url: url),
         _nameplate = nameplate;
 
-  final ServerConnection _connection;
+  final _ServerConnection _connection;
   final String appId;
 
   String _nameplate;
@@ -88,6 +88,7 @@ class MailboxConnection {
     _side = [
       for (int i = 0; i < 10; i++) random.nextInt(16).toRadixString(16),
     ].join();
+    print('Side is $_side');
 
     await _receiveWelcome();
     _bindToAppIdAndSide();
@@ -151,16 +152,36 @@ class MailboxConnection {
 class EncryptedMailboxConnection {
   EncryptedMailboxConnection({
     @required this.mailbox,
-    @required this.key,
+    @required this.shortKey,
   })  : assert(mailbox != null),
-        assert(key != null),
-        assert(key.isNotEmpty);
+        assert(shortKey != null),
+        assert(shortKey.isNotEmpty);
 
   final MailboxConnection mailbox;
-  final Uint8List key;
+  final Uint8List shortKey;
+  Uint8List _key;
+
+  Uint8List computeKeyHash() => sha256(_key);
+
+  Future<void> initialize() async {
+    // Agree on a shared key by exchange pake messages.
+    final spake = Spake2(id: utf8.encode(mailbox.appId), password: shortKey);
+    final outbound = spake.start();
+
+    await mailbox.send(
+      phase: 'pake',
+      message: json.encode({'pake_v1': bytesToHex(outbound)}),
+    );
+
+    final inboundMessage = json.decode(
+      (await mailbox.receive(phase: 'pake'))['body'],
+    );
+    final inboundBytes = hexToBytes(inboundMessage['pake_v1']);
+    _key = spake.finish(inboundBytes);
+  }
 
   Uint8List _deriveKey(Uint8List purpose) =>
-      Hkdf(null, key).expand(purpose, length: SecretBox.keyLength);
+      Hkdf(null, _key).expand(purpose, length: SecretBox.keyLength);
 
   Uint8List _derivePhaseKey(String side, String phase) {
     final sideHash = bytesToHex(sha256(ascii.encode(side)));
@@ -199,101 +220,5 @@ class EncryptedMailboxConnection {
       key: _derivePhaseKey(message['side'], message['phase']),
       encryptedBytes: hexToBytes(message['body']),
     ));
-  }
-}
-
-/// A connection that establishes an [EncryptedMailboxConnection] by using a
-/// code that contains information about the nameplate and short key.
-class CodeEncryptedMailboxConnection {
-  CodeEncryptedMailboxConnection({
-    @required this.url,
-    @required this.appId,
-    @required this.codeGenerator,
-    String code,
-  })  : assert(url != null),
-        assert(url.isNotEmpty),
-        assert(appId != null),
-        assert(appId.isNotEmpty),
-        assert(codeGenerator != null),
-        assert(code == null || code.isNotEmpty),
-        _code = code;
-
-  static const keyLength = 2;
-
-  final String url;
-  final String appId;
-  final CodeGenerator codeGenerator;
-
-  String _code;
-  String get code => _code;
-
-  MailboxConnection _mailbox;
-  EncryptedMailboxConnection _encrypted;
-
-  Uint8List _key;
-  Uint8List get keyHash => sha256(_key);
-
-  Future<void> initialize() async {
-    Uint8List nameplate;
-    Uint8List shortKey;
-
-    if (_code == null) {
-      _mailbox = MailboxConnection(url: url, appId: appId);
-      await _mailbox.initialize();
-
-      nameplate = utf8.encode(_mailbox.nameplate);
-      shortKey = generateShortKey();
-
-      _code = codeGenerator.payloadToCode(CodePayload(
-        nameplate: nameplate,
-        key: shortKey,
-      ));
-    } else {
-      final payload = codeGenerator.codeToPayload(_code);
-      nameplate = payload.nameplate;
-      shortKey = payload.key;
-
-      _mailbox = MailboxConnection(
-        url: url,
-        appId: appId,
-        nameplate: utf8.decode(nameplate),
-      );
-      await _mailbox.initialize();
-    }
-
-    _key = await _agreeOnKey(shortKey);
-    _encrypted = EncryptedMailboxConnection(
-      mailbox: _mailbox,
-      key: _key,
-    );
-  }
-
-  static Uint8List generateShortKey() {
-    final random = Random.secure();
-    return [
-      for (int i = 0; i < keyLength; i++) random.nextInt(256),
-    ].toUint8List();
-  }
-
-  Future<Uint8List> _agreeOnKey(Uint8List shortKey) async {
-    // Exchange pake messages.
-    final spake = Spake2(id: utf8.encode(appId), password: shortKey);
-    final outbound = spake.start();
-    await _mailbox.send(
-      phase: 'pake',
-      message: json.encode({'pake_v1': bytesToHex(outbound)}),
-    );
-    final inboundMessage =
-        json.decode((await _mailbox.receive(phase: 'pake'))['body']);
-    final inboundBytes = hexToBytes(inboundMessage['pake_v1']);
-    return spake.finish(inboundBytes);
-  }
-
-  Future<void> send({@required String phase, @required String message}) async {
-    _encrypted.send(phase: phase, message: message);
-  }
-
-  Future<String> receive({@required String phase}) async {
-    return await _encrypted.receive(phase: phase);
   }
 }
