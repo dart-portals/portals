@@ -1,6 +1,6 @@
 import 'dart:isolate';
 
-import 'package:portals/portals.dart';
+import 'portals.dart';
 
 const appId = 'example.com';
 
