@@ -204,8 +204,8 @@ class EncryptedMailboxConnection {
 
 /// A connection that establishes an [EncryptedMailboxConnection] by using a
 /// code that contains information about the nameplate and short key.
-class EncodedMailboxConnection {
-  EncodedMailboxConnection({
+class CodeEncryptedMailboxConnection {
+  CodeEncryptedMailboxConnection({
     @required this.url,
     @required this.appId,
     @required this.codeGenerator,

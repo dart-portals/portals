@@ -32,10 +32,10 @@ class Portal {
   Mood _mood = Mood.lonely;
   Mood get mood => _mood;
 
-  EncodedMailboxConnection _mailbox;
+  CodeEncryptedMailboxConnection _mailbox;
 
   Future<String> open() async {
-    _mailbox = EncodedMailboxConnection(
+    _mailbox = CodeEncryptedMailboxConnection(
       url: relayUrl,
       appId: appId,
       codeGenerator: codeGenerator,
@@ -50,7 +50,7 @@ class Portal {
   }
 
   Future<Uint8List> openAndLinkTo(String code) async {
-    _mailbox = EncodedMailboxConnection(
+    _mailbox = CodeEncryptedMailboxConnection(
       url: relayUrl,
       appId: appId,
       codeGenerator: codeGenerator,
