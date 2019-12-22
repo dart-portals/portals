@@ -16,8 +16,9 @@ enum Mood { lonely, happy, scared, errorly }
 
 class Portal {
   // TODO: enable timing, versions
-  Portal(
-    this.appId, {
+  Portal({
+    @required this.appId,
+    @required this.version,
     this.relayUrl = _defaultRelayUrl,
     this.codeGenerator = _defaultCodeGenerator,
   })  : assert(appId != null),
@@ -26,6 +27,7 @@ class Portal {
         assert(relayUrl.isNotEmpty);
 
   final String appId;
+  final String version;
   final String relayUrl;
   final CodeGenerator codeGenerator;
 
@@ -84,7 +86,11 @@ class Portal {
 
     // Try several connections to the other client.
     _client = DilatedConnection(mailbox: encryptedMailbox);
+    await _client.establishConnection();
 
     return _keyHash;
   }
+
+  void send(Uint8List message) => _client.send(message);
+  Future<Uint8List> receive() => _client.receive();
 }
