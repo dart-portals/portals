@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:pinenacl/secret.dart';
@@ -22,6 +23,10 @@ extension DetectNonce on SecretBox {
     );
     return decrypt(encrypted);
   }
+}
+
+extension Sum on Iterable<int> {
+  int get min => this.reduce(math.min);
 }
 
 String bytesToHex(Uint8List bytes) {
