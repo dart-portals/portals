@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:isolate';
 
 import 'portals.dart';
@@ -12,9 +13,9 @@ void main() async {
   await Isolate.spawn(otherMain, code);
 
   final key = await portal.waitForLink();
-  print('Portal linked to $key.');
+  print('Portal linked.');
 
-  //print(await portal.receiveMessage());
+  print(utf8.decode(await portal.receive()));
 }
 
 void otherMain(String code) async {
@@ -22,7 +23,7 @@ void otherMain(String code) async {
   print('Connecting to portal $code');
 
   final key = await portal.openAndLinkTo(code);
-  print('Other portal linked to $key.');
+  print('Portal linked.');
 
-  // await portal.sendMessage('Hi there.');
+  await portal.send(utf8.encode('Hi there.'));
 }

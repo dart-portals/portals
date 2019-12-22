@@ -7,6 +7,7 @@ import 'package:async/async.dart';
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:pinenacl/secret.dart';
+import 'package:portals/src/spake2/utils.dart';
 
 import 'server_connection.dart';
 import 'utils.dart';
@@ -20,21 +21,20 @@ class DilatedConnection {
   Future<void> establishConnection() async {
     // This will be filled with all the data connections between both portals.
     final connections = <EncryptedConnection>[];
-    final establishConnection = (Socket socket) async {
-      print('Someone connected to our server at ${socket.port}');
-      connections.add(await EncryptedConnection.establish(
-        socket: socket,
-        key: mailbox.key,
-      ));
-    };
 
     // Set up servers on all our ip addresses. When someone connects to one,
-    // try to establish a connection using the above function.
+    // try to establish a connection.
     final servers = [
       if (NetworkInterface.listSupported)
         for (final interface in await NetworkInterface.list())
           for (final address in interface.addresses)
-            await startServer(address, onConnected: establishConnection),
+            await startServer(address, onConnected: (Socket socket) async {
+              // print('Someone connected to our server at ${socket.port}');
+              connections.add(await EncryptedConnection.establish(
+                socket: socket,
+                key: mailbox.key,
+              ));
+            }),
     ];
 
     // Send information about the servers to the other portal so that it can
@@ -63,14 +63,26 @@ class DilatedConnection {
     ]);
 
     // Choose the connection with the lowest latency.
-    print('Got ${connections.length} connections with latencies '
-        '${connections.map((c) => c.latency).toList()}');
+    // print('Got ${connections.length} connections with latencies '
+    //     '${connections.map((c) => c.latency).toList()}');
+    // print(connections
+    //     .map((c) => '${c.socket.port}->${c.socket.remotePort}')
+    //     .join(', '));
     final establishedConnections = connections.where((c) => c.latency != null);
     if (establishedConnections.isEmpty) {
       return;
     }
+
+    // TODO: handle multiple connections with the same latency
+    final bestLatency = establishedConnections.map((c) => c.latency).min;
     _connection =
-        establishedConnections.reduce((a, b) => a.latency < b.latency ? a : b);
+        establishedConnections.firstWhere((c) => c.latency == bestLatency);
+
+    for (final connection in connections) {
+      if (connection != _connection) {
+        connection.socket.close();
+      }
+    }
   }
 
   static Future<ServerSocket> startServer(
@@ -94,8 +106,8 @@ class EncryptedConnection {
     @required Socket socket,
     @required Uint8List key,
   }) async {
-    print('Connection from ${socket.address.address}:${socket.port} to '
-        '${socket.remoteAddress.address}:${socket.remotePort}');
+    // print('Connection from ${socket.address.address}:${socket.port} to '
+    //     '${socket.remoteAddress.address}:${socket.remotePort}');
     final connection = EncryptedConnection(socket: socket, key: key);
     await connection.ensureEncryptionAndMeasureLatency();
     return connection;
@@ -134,7 +146,12 @@ class EncryptedConnection {
 
     watch.stop();
     final doubleLatency = watch.elapsedMicroseconds;
-    _latency = doubleLatency ~/ 2;
-    print('Latency to ${socket.port} is $latency ms');
+
+    send(numberToBytes(doubleLatency.bi));
+    final latencyOfOtherSide = bytesToNumber(await receive()).toInt();
+
+    // Set the connection's latency to the average latency as perceived by both
+    // sides.
+    _latency = doubleLatency + latencyOfOtherSide;
   }
 }
