@@ -88,7 +88,7 @@ class Point {
 
     final yForEncoding = (x & 1.bi != 0.bi) ? (y + (1.bi << 255)) : this.y;
 
-    return numberToBytes(yForEncoding).reversed.toUint8List();
+    return numberToBytes(yForEncoding);
   }
 
   factory Point.fromBytes(Uint8List encoded) {
@@ -300,7 +300,7 @@ extension Scalar on BigInt {
     BigInt clamped = this % l;
     assert(0.bi <= clamped);
     assert(clamped < 2.bi.pow(256));
-    return numberToBytes(clamped).reversed;
+    return numberToBytes(clamped);
   }
 
   static random([Random random]) {

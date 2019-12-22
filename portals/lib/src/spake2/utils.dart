@@ -32,13 +32,13 @@ extension StringToBigInt on String {
   BigInt get bi => BigInt.parse(this);
 }
 
-BigInt bytesToNumber(Uint8List bytes) {
-  return BigInt.parse(bytesToHex(bytes.reversed.toUint8List()), radix: 16);
-}
+BigInt bytesToNumber(Uint8List bytes) =>
+    BigInt.parse(bytesToHex(bytes.reversed.toUint8List()), radix: 16);
 
-Uint8List numberToBytes(BigInt number) {
-  return hexToBytes(number.toRadixString(16).fillWithLeadingZeros(64));
-}
+Uint8List numberToBytes(BigInt number) =>
+    hexToBytes(number.toRadixString(16).fillWithLeadingZeros(64))
+        .reversed
+        .toUint8List();
 
 final _emptyBytes = Uint8List(0);
 
