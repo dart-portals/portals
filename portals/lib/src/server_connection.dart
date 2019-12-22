@@ -160,6 +160,7 @@ class EncryptedMailboxConnection {
   final MailboxConnection mailbox;
   final Uint8List shortKey;
   Uint8List _key;
+  Uint8List get key => _key;
 
   Uint8List computeKeyHash() => sha256(_key);
 
