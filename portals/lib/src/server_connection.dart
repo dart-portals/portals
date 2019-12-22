@@ -88,7 +88,7 @@ class MailboxConnection {
     _side = [
       for (int i = 0; i < 10; i++) random.nextInt(16).toRadixString(16),
     ].join();
-    print('Side is $_side');
+    // print('Side is $_side');
 
     await _receiveWelcome();
     _bindToAppIdAndSide();

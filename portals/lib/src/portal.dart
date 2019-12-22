@@ -71,7 +71,7 @@ class Portal {
     );
     await _mailbox.initialize();
 
-    print('Linking to $code');
+    // print('Linking to $code');
     return await _setupLink();
   }
 
