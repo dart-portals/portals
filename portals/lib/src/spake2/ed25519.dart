@@ -38,6 +38,14 @@ import 'dart:typed_data';
 
 import 'utils.dart';
 
+class Ed25519Exception implements Exception {
+  Ed25519Exception(this.message);
+
+  final String message;
+
+  String toString() => message;
+}
+
 final q = 2.bi.pow(255) - 19.bi; // The order of the group.
 final l = 2.bi.pow(252) + '27742317777372353535851937790883648493'.bi;
 final d = -121665.bi * 121666.bi.inv;
@@ -105,7 +113,7 @@ class Point {
     final point = Point(x, y);
 
     if (!point.isOnCurve) {
-      throw Exception('Decoding point that is not on curve.');
+      throw Ed25519Exception('Decoding point that is not on curve.');
     }
     return point;
   }
@@ -208,7 +216,7 @@ class Element extends ExtendedPoint {
     final p = Element(Point.fromBytes(bytes).toExtended());
     if (p.isZero) {
       // || !p.fastScalarMult(l).isZero) {
-      throw Exception('Element is not in the right group.');
+      throw Ed25519Exception('Element is not in the right group.');
     }
     // The point is in the expected 1*l subgroup, not in the 2/4/8 groups, or
     // in the 2*l/4*l/8*l groups.

@@ -26,26 +26,67 @@ class PortalException implements Exception {
   }
 }
 
-class PortalServerException extends PortalException {
-  PortalServerException({
-    @required String summary,
-    @required String description,
-    @required String suggestedFix,
-  }) : super(
-          summary: summary,
-          description: description,
-          suggestedFix: suggestedFix,
+class PortalCannotConnectToServerException extends PortalException {
+  PortalCannotConnectToServerException(String url)
+      : super(
+          summary: 'The portal cannot connect to the server.',
+          description: 'Initially, the portal connects to a server. Portals '
+              'use this server to negotiate an end-to-end encrypted '
+              'connection and exchange ip address information in order to be '
+              'able to create a peer-to-peer connection.\n'
+              'However, this portal can\'t connect to the server.',
+          suggestedFix: 'First, make sure you have access to the internet. '
+              "The server that\'s used is hosted at $url. "
+              'Check if you can reach it manually.\n'
+              'For more reliable connections under big loads, consider '
+              'running your own server. Portals use the Magic Wormhole '
+              'protocol, so running a wormhole server as described at '
+              'https://github.com/warner/magic-wormhole-mailbox-server '
+              'should be sufficient.',
         );
 }
 
-class PortalCannotConnectToServerException extends PortalServerException {
-  PortalCannotConnectToServerException()
+class PortalInternalServerErrorException extends PortalException {
+  PortalInternalServerErrorException(dynamic error)
       : super(
-          summary: 'The portal cannot connect to the server.',
-          description: 'Initially, the portal connects to a server. However, '
-              'we cannot connect to it.',
-          suggestedFix: 'Host your own server! And make sure you have '
-              'internet.',
+          summary: 'The server notified us of a server-side error while we '
+              'were connecting.',
+          description: error,
+          suggestedFix: 'For a more reliable server, consider running your '
+              'own server as described at '
+              'https://github.com/warner/magic-wormhole-mailbox-server.',
+        );
+}
+
+class PortalServerCorruptException extends PortalException {
+  PortalServerCorruptException(String description)
+      : super(
+          summary: 'The server seems to be corrupt.',
+          description: description,
+          suggestedFix: 'For a more reliable server, consider running your '
+              'own server as described at '
+              'https://github.com/warner/magic-wormhole-mailbox-server.',
+        );
+}
+
+class OtherPortalCorruptException extends PortalException {
+  OtherPortalCorruptException(String description)
+      : super(
+          summary: 'The other portal seems to be corrupt.',
+          description: description,
+          suggestedFix: '',
+        );
+}
+
+class PortalEncryptionFailedException extends PortalException {
+  PortalEncryptionFailedException()
+      : super(
+          summary: 'The encryption for this portal failed.',
+          description: 'During linking, portals try to negotiate a shared '
+              'encryption key to use for further end-to-end encryption. That '
+              'failed. Possibly someone tried to interfere.',
+          suggestedFix: 'You could try again, thereby giving both the other '
+              'legitimate portal and a possible attacker another chance.',
         );
 }
 

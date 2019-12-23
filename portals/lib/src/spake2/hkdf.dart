@@ -4,6 +4,14 @@ import 'package:crypto/crypto.dart';
 
 import 'utils.dart';
 
+class HkdfException {
+  HkdfException(this.message);
+
+  final String message;
+
+  String toString() => message;
+}
+
 Uint8List _extract(Uint8List salt, Uint8List inputKeyMaterial) {
   salt ??= List.filled(sha256.blockSize, 0).toUint8List();
   return Hmac(sha256, salt).convert(inputKeyMaterial).bytes;
@@ -13,7 +21,7 @@ Uint8List _expand(Uint8List key, Uint8List info, int length) {
   final hashLength = sha256.blockSize;
 
   if (length > 255 * hashLength) {
-    throw Exception(
+    throw HkdfException(
         'Cannot expand to more than ${255 * hashLength} bytes using '
         'sha256, but length is $length.');
   }
