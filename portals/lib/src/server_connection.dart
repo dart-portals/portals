@@ -246,7 +246,7 @@ class EncryptedMailboxConnection {
 
   Future<void> initialize() async {
     final spake = Spake2(id: utf8.encode(mailbox.appId), password: shortKey);
-    final outbound = spake.start();
+    final outbound = await spake.start();
 
     await mailbox.send(
       phase: 'pake',
@@ -258,7 +258,7 @@ class EncryptedMailboxConnection {
         (await mailbox.receive(phase: 'pake'))['body'],
       );
       final inboundBytes = hexToBytes(inboundMessage['pake_v1']);
-      _key = spake.finish(inboundBytes);
+      _key = await spake.finish(inboundBytes);
     } on TypeError {
       throw OtherPortalCorruptException(
           'The other portal sent a pake message without a body.');

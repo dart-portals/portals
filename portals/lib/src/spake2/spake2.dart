@@ -6,9 +6,11 @@
 /// https://copyninja.info/blog/golang_spake2_4.html
 
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:async/async.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:meta/meta.dart';
 
@@ -21,7 +23,7 @@ Uint8List sha256(List<int> data) =>
 final s = Element.arbitraryElement(ascii.encode('symmetric'));
 
 /// This class manages one side of a spake2 key negotiation.
-class Spake2 {
+class _Spake2 {
   final Uint8List id;
   final Uint8List password;
   final BigInt _pwScalar;
@@ -33,7 +35,7 @@ class Spake2 {
   bool _started = false;
   bool _finished = false;
 
-  Spake2({@required this.id, @required this.password})
+  _Spake2({@required this.id, @required this.password})
       : assert(id != null),
         assert(id.isNotEmpty),
         assert(password != null),
@@ -87,5 +89,64 @@ class Spake2 {
       ...kBytes,
     ];
     return sha256(transcript);
+  }
+}
+
+extension _BytesSender on SendPort {
+  void sendBytes(Uint8List list) => this.send(list.toList());
+}
+
+extension _BytesReceiver on StreamQueue {
+  Future<Uint8List> receiveBytes() async =>
+      (await this.next as List).cast<int>().toUint8List();
+}
+
+void _createSpake2(SendPort sendPort) async {
+  final port = ReceivePort();
+  sendPort.send(port.sendPort);
+  final receivePort = StreamQueue(port);
+
+  // Setup a Spake2 instance with id and password.
+  final id = await receivePort.receiveBytes();
+  final password = await receivePort.receiveBytes();
+  final spake = _Spake2(id: id, password: password);
+
+  // Start the encryption.
+  sendPort.sendBytes(spake.start());
+
+  // Finish the encryption.
+  final inboundMessage = await receivePort.receiveBytes();
+  final key = spake.finish(inboundMessage);
+  sendPort.send(key);
+  port.close();
+}
+
+class Spake2 {
+  Spake2({@required this.id, @required this.password});
+
+  final Uint8List id;
+  final Uint8List password;
+
+  ReceivePort _port;
+  StreamQueue _receivePort;
+  SendPort _sendPort;
+
+  Future<Uint8List> start() async {
+    _port = ReceivePort();
+    Isolate.spawn(_createSpake2, _port.sendPort);
+    _receivePort = StreamQueue(_port);
+    _sendPort = await _receivePort.next as SendPort;
+
+    // Send the id and password.
+    _sendPort.sendBytes(id);
+    _sendPort.sendBytes(password);
+    return await _receivePort.receiveBytes();
+  }
+
+  Future<Uint8List> finish(Uint8List inboundMessage) async {
+    _sendPort.sendBytes(inboundMessage);
+    final key = await _receivePort.receiveBytes();
+    _port.close();
+    return key;
   }
 }
