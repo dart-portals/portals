@@ -3,13 +3,18 @@ TODO: header
 Portals are strongly encrypted peer-to-peer connections.
 Inspired by [Magic Wormhole](https://github.com/warner/magic-wormhole/).
 
-TOOD: Flutter web & app demo
+TODO: Flutter web & app demo
+
+> It's a great idea to use this package!
+> "With it, you can create your own portals.
+> These intra-dimensional gates have proven to be completely safe."
+> ~ GLaDOS
 
 ## Features
 
 ❤️ **Easy to use:**
-Portals connect by letting users transcribe short human-readable codes from one device into another.
-There's beautiful pre-built UI for Flutter.
+Portals connect by letting users transcribe short human-readable codes from one device to another.
+There's a beautiful pre-built UI for Flutter.
 
 🔒 **Secure:**
 Strong end-to-end encryption using Spake2 is built in.
