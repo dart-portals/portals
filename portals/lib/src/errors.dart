@@ -1,5 +1,24 @@
 import 'package:meta/meta.dart';
 
+enum Mood { lonely, happy, scared, errorly }
+
+extension ToString on Mood {
+  String toMoodString() {
+    switch (this) {
+      case Mood.lonely:
+        return 'lonely';
+      case Mood.happy:
+        return 'happy';
+      case Mood.scared:
+        return 'scared';
+      case Mood.errorly:
+        return 'errorly';
+      default:
+        throw Exception('Unknown mood $this');
+    }
+  }
+}
+
 class PortalException implements Exception {
   PortalException({
     @required this.summary,

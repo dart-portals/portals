@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:pinenacl/secret.dart';
@@ -42,4 +43,34 @@ Uint8List hexToBytes(String hexString) {
     bytes.add(int.parse(byteString, radix: 16));
   }
   return bytes.toUint8List();
+}
+
+extension IntToBigInt on int {
+  /// Turns this [int] into a [BigInt].
+  BigInt get bi => BigInt.from(this);
+}
+
+extension StringToBigInt on String {
+  /// Turns this [String] into a [BigInt].
+  BigInt get bi => BigInt.parse(this);
+}
+
+BigInt bytesToNumber(Uint8List bytes) =>
+    BigInt.parse(bytesToHex(bytes.reversed.toUint8List()), radix: 16);
+
+Uint8List numberToBytes(BigInt number) =>
+    hexToBytes(number.toRadixString(16).fillWithLeadingZeros(64))
+        .reversed
+        .toUint8List();
+
+extension StreamWhereType<T> on Stream<T> {
+  Stream<S> whereType<S extends T>() =>
+      this.where((item) => item is S).cast<S>();
+}
+
+Uint8List generateRandomUint8List(int length) {
+  final random = Random.secure();
+  return [
+    for (int i = 0; i < length; i++) random.nextInt(256),
+  ].toUint8List();
 }
