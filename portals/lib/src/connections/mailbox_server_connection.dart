@@ -154,6 +154,7 @@ class MailboxServerConnection {
     assert(phase != null);
     assert(message != null);
 
+    print('${_side.substring(0, 3)}: Sending $phase message');
     server.send({'type': 'add', 'phase': phase, 'body': message});
   }
 
@@ -163,10 +164,18 @@ class MailboxServerConnection {
     while (true) {
       final response = await server.receive(type: 'message');
 
-      if (response['side'] == _side) continue;
+      if (response['side'] == _side) {
+        print(
+            '${_side.substring(0, 3)}: Received message of phase $phase. Ignoring because its from us.');
+        continue;
+      }
       if (phase == null || response['phase'] == phase) {
+        print(
+            '${_side.substring(0, 3)}: Received message of phase $phase. Reporting.');
         return response;
       }
+      print(
+          '${_side.substring(0, 3)}: Received message of phase ${response['phase']}. Discarding because listening for $phase.');
     }
   }
 }

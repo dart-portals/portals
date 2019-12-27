@@ -33,6 +33,8 @@ class MailboxConnection {
   final MailboxServerConnection server;
   final Uint8List shortKey;
 
+  String get side => server.side;
+
   Uint8List _key;
   Uint8List get key => _key;
 
@@ -65,19 +67,24 @@ class MailboxConnection {
     } on Ed25519Exception {
       throw PortalEncryptionFailedException();
     }
+    print(
+        '${side.substring(0, 3)}: Finished the encryption process. Key is $_key.');
+    await Future.delayed(Duration(seconds: 1));
   }
 
   /// Exchanges the versions of this and the other portal's app protocol.
   Future<Version> exchangeVersions(Version myVersion) async {
-    await send(
+    print('${side.substring(0, 3)}: Sending my version $myVersion.');
+    send(
       phase: 'versions',
       message: json.encode({
-        // TODO: make this a dictionary for compatibility with magic wormhole
-        'app_versions': myVersion.toString(),
-        'can_dilate': ['1.0.0'], // TODO: use this
+        'app_version': myVersion.toString(),
       }),
     );
+    await Future.delayed(Duration(seconds: 5));
+    print('${side.substring(0, 3)}: Receiving versions.');
     final response = await receive(phase: 'versions');
+    print('${side.substring(0, 3)}: Versions received: $response');
 
     // We now have a confirmed secured connection with the other portal.
     // Release the nameplate for the mailbox so other portals can use it.
@@ -92,7 +99,7 @@ class MailboxConnection {
           'The other portal sent a non-json version message.');
     }
     try {
-      return Version.parse(body['app_versions'] as String);
+      return Version.parse(body['app_version'] as String);
     } on FormatException {
       throw OtherPortalCorruptException(
           'Other portal sent invalid semantic version: ${body['app_versions']}');

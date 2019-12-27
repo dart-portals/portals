@@ -64,6 +64,7 @@ class ServerConnection {
       while (true) {
         final data =
             json.decode(await _incomingPackets.next) as Map<String, dynamic>;
+        // print('$data');
         if (data['type'] == type) {
           return data;
         }

@@ -17,7 +17,6 @@ import 'events.dart';
 import 'utils.dart';
 
 class Portal {
-  // TODO: enable timing, versions
   Portal({
     @required this.appId,
     @required this.version,
@@ -80,6 +79,7 @@ class Portal {
     _mailbox = MailboxConnection(server: _mailboxServer, shortKey: shortKey);
     print('Initializing mailbox.');
     await _mailbox.initialize();
+    print('Exchanging versions.');
     _remoteVersion = await _mailbox.exchangeVersions(version);
     _registerEvent(PortalLinked(sharedKeyHash: sha256(_mailbox.key)));
 

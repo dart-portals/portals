@@ -5,22 +5,18 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
-import '../utils.dart';
 import 'mailbox_connection.dart';
 import 'peer_to_peer_connection.dart';
+import 'signal.dart';
 
 class DilatedConnection {
-  DilatedConnection({@required this.mailbox}) : assert(mailbox != null) {
-    _updates = _updatesController.stream.asBroadcastStream();
-  }
+  DilatedConnection({@required this.mailbox}) : assert(mailbox != null);
 
   final MailboxConnection mailbox;
 
   bool _isLeader;
   PeerToPeerConnection _connection;
-
-  final _updatesController = StreamController<Null>();
-  Stream<Null> _updates;
+  Signal update;
 
   Future<void> _foundConnection(PeerToPeerConnection candidate) async {
     if (_connection != null) {
@@ -35,31 +31,34 @@ class DilatedConnection {
         final response = await candidate.receive();
         assert(utf8.decode(response) == 'take-this'); // TODO: error handling
         _connection = candidate;
-        _updatesController.add(null);
       } on StateError {
         _connection.close();
       }
   }
 
   Future<void> establishConnection() async {
-    final servers = [
+    final serverAddresses = {
       if (NetworkInterface.listSupported)
         for (final interface in await NetworkInterface.list())
-          for (final address in interface.addresses)
-            await startServer(address, onConnected: (Socket socket) async {
-              // print('Someone connected to our server at ${socket.port}');
-              _foundConnection(await PeerToPeerConnection.establish(
-                socket: socket,
-                key: mailbox.key,
-              ));
-            }),
+          for (final address in interface.addresses) address,
+    };
+    final servers = [
+      for (final address in serverAddresses)
+        await startServer(address, onConnected: (Socket socket) async {
+          // print('Someone connected to our server at ${socket.port}');
+          _foundConnection(await PeerToPeerConnection.establish(
+            socket: socket,
+            key: mailbox.key,
+          ));
+        }),
     ];
+    print('Servers running at $serverAddresses.');
 
     // Send information about the servers to the other portal so that it can
     // try to connect to them.
-    final side = bytesToHex(generateRandomUint8List(32));
+    final side = mailbox.side;
     mailbox.send(
-      phase: 'dilation',
+      phase: 'DILATE-0',
       message: json.encode({
         'side': side,
         'connection-hints': [
@@ -87,7 +86,7 @@ class DilatedConnection {
       });
     }
 
-    await _updates.first;
+    await update.waitForSignal();
     print(
         'Using connection $_connection with ip ${_connection.socket.address.address} from ${_connection.socket.port} to ${_connection.socket.remotePort}.');
   }
@@ -101,13 +100,21 @@ class DilatedConnection {
     return server;
   }
 
+  Future<void> _ensureConnectionEstablished() async {
+    // TODO: make sure connection is established
+    if (_connection == null) {
+      _connection = null;
+      await establishConnection();
+    }
+  }
+
   Future<void> send(Uint8List message) async {
-    await _updates.first;
+    await _ensureConnectionEstablished();
     await _connection.send(message);
   }
 
   Future<Uint8List> receive() async {
-    await _updates.first;
+    await _ensureConnectionEstablished();
     return await _connection.receive();
   }
 

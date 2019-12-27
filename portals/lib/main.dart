@@ -7,10 +7,10 @@ import 'portals.dart';
 import 'src/utils.dart';
 
 const appId = 'example.com';
-final version = Version.parse('1.0.0');
 
 void main() async {
-  final portal = Portal(appId: appId, version: version);
+  final portal = Portal(appId: appId, version: Version.parse('1.0.0'));
+  portal.events.forEach(print);
   final code = await portal.open();
   print('Portal $code opened');
 
@@ -24,7 +24,8 @@ void main() async {
 }
 
 void otherMain(String code) async {
-  final portal = Portal(appId: appId, version: version);
+  final portal = Portal(appId: appId, version: Version.parse('1.0.1'));
+  portal.events.forEach(print);
   print('Connecting to portal $code');
 
   final key = await portal.openAndLinkTo(code);
