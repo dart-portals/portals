@@ -10,7 +10,6 @@ import 'package:pinenacl/secret.dart';
 import 'package:portals/src/spake2/utils.dart';
 
 import 'connections/mailbox_connection.dart';
-import 'server_connection.dart';
 import 'utils.dart';
 
 class DilatedConnection {

@@ -10,16 +10,11 @@ import 'package:version/version.dart';
 
 import 'client_connection.dart';
 import 'code_generators/code_generator.dart';
-import 'code_generators/hex.dart';
 import 'connections/mailbox_connection.dart';
 import 'constants.dart';
 import 'events.dart';
-import 'server_connection.dart';
 import 'spake2/spake2.dart';
 import 'utils.dart';
-
-const _defaultRelayUrl = 'ws://relay.magic-wormhole.io:4000/v1';
-const _defaultCodeGenerator = HexCodeGenerator();
 
 class Portal {
   Portal({
