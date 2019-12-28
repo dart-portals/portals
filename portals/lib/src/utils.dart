@@ -39,6 +39,11 @@ extension StringToBigInt on String {
   BigInt get bi => BigInt.parse(this);
 }
 
+extension StreamWhereType<T> on Stream<T> {
+  Stream<S> whereType<S extends T>() =>
+      this.where((item) => item is S).cast<S>();
+}
+
 String bytesToHex(Uint8List bytes) {
   return bytes
       .map((byte) => byte.toRadixString(16).fillWithLeadingZeros(2))

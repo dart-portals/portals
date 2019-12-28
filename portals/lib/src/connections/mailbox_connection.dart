@@ -81,7 +81,6 @@ class MailboxConnection {
         'app_version': myVersion.toString(),
       }),
     );
-    await Future.delayed(Duration(seconds: 5));
     print('${side.substring(0, 3)}: Receiving versions.');
     final response = await receive(phase: 'versions');
     print('${side.substring(0, 3)}: Versions received: $response');

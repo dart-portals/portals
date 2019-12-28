@@ -39,17 +39,19 @@ class MailboxServerConnection {
   String _side;
   String get side => _side;
 
-  /// Binds this socket to the server by providing an app id and a side id,
-  /// which we choose randomly.
-  Future<void> bindAndWelcome() async {
-    assert(server.isConnected);
-
+  void initialize() {
     // If two clients have the same side, that's bad – they'll just ignore
     // everything. So, we choose a reasonably large random string as our side.
     final random = Random();
     _side = [
       for (var i = 0; i < 32; i++) random.nextInt(16).toRadixString(16),
     ].join();
+  }
+
+  /// Binds this socket to the server by providing an app id and a side id,
+  /// which we choose randomly.
+  Future<void> bindAndWelcome() async {
+    assert(server.isConnected);
 
     server.send({'type': 'bind', 'appid': appId, 'side': _side});
 
@@ -85,6 +87,7 @@ class MailboxServerConnection {
   Future<String> allocateNameplate() async {
     assert(server.isConnected);
 
+    print('Allocating nameplate.');
     server.send({'type': 'allocate'});
 
     final allocation = await server.receive(type: 'allocated');
@@ -160,9 +163,9 @@ class MailboxServerConnection {
 
   /// Receive a message with the given [phase].
   Future<Map<String, dynamic>> receiveMessage({@required String phase}) async {
-    server.receive(type: 'message');
     while (true) {
       final response = await server.receive(type: 'message');
+      print('${_side.substring(0, 3)}: Received, so apparently not ignored');
 
       if (response['side'] == _side) {
         print(

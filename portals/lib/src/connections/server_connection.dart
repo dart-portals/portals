@@ -62,13 +62,17 @@ class ServerConnection {
 
     try {
       while (true) {
+        // TODO: handle StateError: Bad state: No elements.
         final data =
             json.decode(await _incomingPackets.next) as Map<String, dynamic>;
-        // print('$data');
+        print('$data');
         if (data['type'] == type) {
           return data;
         }
+        print('Ignoring because of type ${data['type']} instead of $type');
       }
+    } on FormatException {
+      throw PortalServerCorruptException('Portal sent a non-json packet.');
     } on TypeError {
       close();
       throw PortalServerCorruptException(

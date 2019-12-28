@@ -9,13 +9,14 @@ import 'package:meta/meta.dart';
 import 'package:pinenacl/secret.dart';
 import 'package:portals/src/spake2/utils.dart';
 
+import 'connections/mailbox_connection.dart';
 import 'server_connection.dart';
 import 'utils.dart';
 
 class DilatedConnection {
   DilatedConnection({@required this.mailbox}) : assert(mailbox != null);
 
-  final EncryptedMailboxConnection mailbox;
+  final MailboxConnection mailbox;
   EncryptedConnection _connection;
 
   Future<void> establishConnection() async {
