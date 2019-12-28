@@ -8,8 +8,8 @@ import 'package:portals/src/connections/mailbox_server_connection.dart';
 import 'package:portals/src/connections/server_connection.dart';
 import 'package:version/version.dart';
 
-import 'client_connection.dart';
 import 'code_generators/code_generator.dart';
+import 'connections/dilated_connection.dart';
 import 'connections/mailbox_connection.dart';
 import 'constants.dart';
 import 'events.dart';
@@ -85,6 +85,7 @@ class Portal {
     // Try several connections to the other client.
     _client = DilatedConnection(mailbox: _mailbox);
     await _client.establishConnection();
+    // print('Established connection.');
     _registerEvent(PortalReady());
   }
 

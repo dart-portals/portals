@@ -18,7 +18,7 @@ void main() async {
   final key = await portal.waitForLink();
   print('Portal linked using key ${bytesToHex(key)}.');
 
-  await Future.delayed(Duration(seconds: 2));
+  await portal.waitUntilReady();
   print(utf8.decode(await portal.receive()));
 }
 
@@ -29,6 +29,6 @@ void otherMain(String code) async {
   final key = await portal.openAndLinkTo(code);
   print('Portal linked using key ${bytesToHex(key)}.');
 
-  await Future.delayed(Duration(seconds: 2));
+  await portal.waitUntilReady();
   await portal.send(utf8.encode('Hi there.'));
 }

@@ -1,4 +1,4 @@
-/*import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -16,24 +16,31 @@ class DilatedConnection {
 
   bool _isLeader;
   PeerToPeerConnection _connection;
-  Signal update;
+  final foundOutWhetherIsLeader = Signal();
+  final connectionFound = Signal();
 
   Future<void> _foundConnection(PeerToPeerConnection candidate) async {
     if (_connection != null) {
       candidate.close();
       return;
     }
+    if (_isLeader == null) {
+      await foundOutWhetherIsLeader.waitForSignal();
+    }
     if (_isLeader) {
       _connection = candidate;
-      _connection.send(utf8.encode('take-this'));
-    } else
+      _connection.send([42]);
+      connectionFound.signal();
+    } else {
       try {
         final response = await candidate.receive();
-        assert(utf8.decode(response) == 'take-this'); // TODO: error handling
+        assert(response.single == 42); // TODO: error handling
         _connection = candidate;
+        connectionFound.signal();
       } on StateError {
-        _connection.close();
+        candidate.close();
       }
+    }
   }
 
   Future<void> establishConnection() async {
@@ -52,13 +59,12 @@ class DilatedConnection {
           ));
         }),
     ];
-    print('Servers running at $serverAddresses.');
 
     // Send information about the servers to the other portal so that it can
     // try to connect to them.
     final side = mailbox.side;
     mailbox.send(
-      phase: 'DILATE-0',
+      phase: 'dilate',
       message: json.encode({
         'side': side,
         'connection-hints': [
@@ -72,6 +78,7 @@ class DilatedConnection {
     // of them.
     final response = json.decode(await mailbox.receive(phase: 'dilate'));
     _isLeader = (response['side'] as String).compareTo(side) < 0;
+    foundOutWhetherIsLeader.signal();
     final serversFromOtherPortal = response['connection-hints'];
 
     for (final server in serversFromOtherPortal) {
@@ -86,9 +93,10 @@ class DilatedConnection {
       });
     }
 
-    await update.waitForSignal();
-    print(
-        'Using connection $_connection with ip ${_connection.socket.address.address} from ${_connection.socket.port} to ${_connection.socket.remotePort}.');
+    await connectionFound.waitForSignal();
+    // print('Using connection $_connection with ip '
+    //     '${_connection.socket.address.address} from ${_connection.socket.port} '
+    //     'to ${_connection.socket.remotePort}.');
   }
 
   static Future<ServerSocket> startServer(
@@ -102,7 +110,7 @@ class DilatedConnection {
 
   Future<void> _ensureConnectionEstablished() async {
     // TODO: make sure connection is established
-    if (_connection == null) {
+    if (_connection == null || false) {
       _connection = null;
       await establishConnection();
     }
@@ -122,4 +130,4 @@ class DilatedConnection {
     _connection.close();
     _connection = null;
   }
-}*/
+}

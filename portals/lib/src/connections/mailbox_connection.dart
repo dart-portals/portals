@@ -71,7 +71,7 @@ class MailboxConnection {
 
   /// Exchanges the versions of this and the other portal's app protocol.
   Future<Version> exchangeVersions(Version myVersion) async {
-    print('${side.substring(0, 3)}: Sending my version $myVersion.');
+    // print('${side.substring(0, 3)}: Sending my version $myVersion.');
     send(
       phase: 'versions',
       message: json.encode({
@@ -79,7 +79,7 @@ class MailboxConnection {
       }),
     );
     final response = await receive(phase: 'versions');
-    print('${side.substring(0, 3)}: Versions received: $response');
+    // print('${side.substring(0, 3)}: Versions received: $response');
 
     // We now have a confirmed secured connection with the other portal.
     // Release the nameplate for the mailbox so other portals can use it.
