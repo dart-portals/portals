@@ -47,8 +47,8 @@ class PeerToPeerConnection {
   void send(List<int> message) =>
       socket.add(SecretBox(key).encrypt(message).toUint8List());
 
-  Future<Uint8List> receive() async =>
-      SecretBox(key).detectNonceAndDecrypt(await _incomingData.next);
+  Future<Uint8List> receive() async => SecretBox(key)
+      .decrypt(EncryptedMessage.fromList(await _incomingData.next));
 
   Future<void> close() => socket.close();
 }

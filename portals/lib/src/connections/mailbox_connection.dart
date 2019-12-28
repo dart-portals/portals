@@ -138,13 +138,12 @@ class MailboxConnection {
 
     // Decode and decrypt the message.
     final decoded = hexToBytes(body);
-    Uint8List decrypted;
     try {
-      final secretBox = SecretBox(_derivePhaseKey(side, phase));
-      decrypted = secretBox.detectNonceAndDecrypt(decoded);
+      final decrypted = SecretBox(_derivePhaseKey(side, phase))
+          .decrypt(EncryptedMessage.fromList(decoded));
+      return utf8.decode(decrypted);
     } on String {
       throw PortalEncryptionFailedException();
     }
-    return utf8.decode(decrypted);
   }
 }
