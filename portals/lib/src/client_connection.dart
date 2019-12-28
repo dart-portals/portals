@@ -109,8 +109,6 @@ class EncryptedConnection {
     @required Socket socket,
     @required Uint8List key,
   }) async {
-    print('Connection from ${socket.address.address}:${socket.port} to '
-        '${socket.remoteAddress.address}:${socket.remotePort}');
     final connection = EncryptedConnection(socket: socket, key: key);
     await connection.ensureEncryptionAndMeasureLatency();
     return connection;

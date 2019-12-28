@@ -83,9 +83,7 @@ class Portal {
 
     // Create an encrypted connection over the mailbox and save its key hash.
     _mailbox = MailboxConnection(server: _mailboxServer, shortKey: shortKey);
-    print('Initializing mailbox.');
     await _mailbox.initialize();
-    print('Exchanging versions.');
     _remoteVersion = await _mailbox.exchangeVersions(version);
     _registerEvent(PortalLinked(sharedKeyHash: sha256(_mailbox.key)));
 

@@ -67,9 +67,6 @@ class MailboxConnection {
     } on Ed25519Exception {
       throw PortalEncryptionFailedException();
     }
-    print(
-        '${side.substring(0, 3)}: Finished the encryption process. Key is $_key.');
-    await Future.delayed(Duration(seconds: 1));
   }
 
   /// Exchanges the versions of this and the other portal's app protocol.
@@ -81,7 +78,6 @@ class MailboxConnection {
         'app_version': myVersion.toString(),
       }),
     );
-    print('${side.substring(0, 3)}: Receiving versions.');
     final response = await receive(phase: 'versions');
     print('${side.substring(0, 3)}: Versions received: $response');
 

@@ -212,7 +212,6 @@ class Element extends ExtendedPoint {
 
   /// This strictly only accepts elements in the right subgroup.
   factory Element.fromBytes(Uint8List bytes) {
-    // print('Decoding element from bytes $bytes');
     final p = Element(Point.fromBytes(bytes).toExtended());
     if (p.isZero) {
       // || !p.fastScalarMult(l).isZero) {

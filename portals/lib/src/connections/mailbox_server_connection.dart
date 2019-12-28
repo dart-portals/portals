@@ -87,7 +87,6 @@ class MailboxServerConnection {
   Future<String> allocateNameplate() async {
     assert(server.isConnected);
 
-    print('Allocating nameplate.');
     server.send({'type': 'allocate'});
 
     final allocation = await server.receive(type: 'allocated');
@@ -157,7 +156,6 @@ class MailboxServerConnection {
     assert(phase != null);
     assert(message != null);
 
-    print('${_side.substring(0, 3)}: Sending $phase message');
     server.send({'type': 'add', 'phase': phase, 'body': message});
   }
 
@@ -165,20 +163,13 @@ class MailboxServerConnection {
   Future<Map<String, dynamic>> receiveMessage({@required String phase}) async {
     while (true) {
       final response = await server.receive(type: 'message');
-      print('${_side.substring(0, 3)}: Received, so apparently not ignored');
 
       if (response['side'] == _side) {
-        print(
-            '${_side.substring(0, 3)}: Received message of phase $phase. Ignoring because its from us.');
         continue;
       }
       if (phase == null || response['phase'] == phase) {
-        print(
-            '${_side.substring(0, 3)}: Received message of phase $phase. Reporting.');
         return response;
       }
-      print(
-          '${_side.substring(0, 3)}: Received message of phase ${response['phase']}. Discarding because listening for $phase.');
     }
   }
 }
