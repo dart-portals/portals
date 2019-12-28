@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
@@ -19,7 +20,12 @@ class CodePayload {
 abstract class CodeGenerator {
   static const _keyLength = 2;
 
-  static Uint8List generateShortKey() => generateRandomUint8List(_keyLength);
+  static Uint8List generateShortKey() {
+    final random = Random.secure();
+    return [
+      for (int i = 0; i < _keyLength; i++) random.nextInt(256),
+    ].toUint8List();
+  }
 
   String payloadToCode(CodePayload payload);
   CodePayload codeToPayload(String code);

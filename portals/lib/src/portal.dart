@@ -1,120 +1,95 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
-import 'package:pedantic/pedantic.dart';
-import 'package:portals/src/spake2/spake2.dart';
-import 'package:version/version.dart';
 
+import 'client_connection.dart';
 import 'code_generators/code_generator.dart';
-import 'connections/dilated_connection.dart';
-import 'connections/mailbox_connection.dart';
-import 'connections/mailbox_server_connection.dart';
-import 'connections/server_connection.dart';
-import 'constants.dart';
-import 'events.dart';
-import 'utils.dart';
+import 'code_generators/hex.dart';
+import 'server_connection.dart';
+
+const _defaultRelayUrl = 'ws://relay.magic-wormhole.io:4000/v1';
+const _defaultCodeGenerator = HexCodeGenerator();
+
+// TODO: handle mood
+enum Mood { lonely, happy, scared, errorly }
 
 class Portal {
   Portal({
     @required this.appId,
     @required this.version,
-    this.relayUrl = defaultRelayUrl,
-    this.codeGenerator = defaultCodeGenerator,
+    this.relayUrl = _defaultRelayUrl,
+    this.codeGenerator = _defaultCodeGenerator,
   })  : assert(appId != null),
         assert(appId.isNotEmpty),
         assert(relayUrl != null),
-        assert(relayUrl.isNotEmpty) {
-    _events = _eventController.stream.asBroadcastStream();
-  }
+        assert(relayUrl.isNotEmpty);
 
   final String appId;
-  final Version version;
+  final String version;
   final String relayUrl;
   final CodeGenerator codeGenerator;
 
-  Version _remoteVersion;
-  Version get remoteVersion => _remoteVersion;
+  Mood _mood = Mood.lonely;
+  Mood get mood => _mood;
 
-  // Different layers of connections.
-  ServerConnection _server;
-  MailboxServerConnection _mailboxServer;
+  Uint8List _shortKey;
+
+  Uint8List _keyHash;
+  Uint8List get keyHash => _keyHash;
+
   MailboxConnection _mailbox;
   DilatedConnection _client;
 
-  // Events that this portal emits.
-  final _eventController = StreamController<PortalEvent>();
-  Stream<PortalEvent> _events;
-  Stream<PortalEvent> get events => _events;
-  void _registerEvent(PortalEvent event) => _eventController.add(event);
-
-  Future<void> _setup([String code]) async {
-    // Extract short key and nameplate from the code.
-    final payload = code == null ? null : codeGenerator.codeToPayload(code);
-    Uint8List shortKey = payload?.key ?? CodeGenerator.generateShortKey();
-    String nameplate =
-        payload?.nameplate == null ? null : utf8.decode(payload?.nameplate);
-
-    // Connect to the server.
-    _server = ServerConnection(url: relayUrl);
-    _server.connect();
-    _registerEvent(PortalServerReached());
-
-    // Set up the mailbox server.
-    _mailboxServer = MailboxServerConnection(server: _server, appId: appId);
-    await _mailboxServer.bindAndWelcome();
-    nameplate ??= await _mailboxServer.allocateNameplate();
-    final mailbox = await _mailboxServer.claimNameplate(nameplate);
-    await _mailboxServer.openMailbox(mailbox);
-
-    _registerEvent(PortalOpened(
-      code: codeGenerator.payloadToCode(CodePayload(
-        key: shortKey,
-        nameplate: utf8.encode(nameplate),
-      )),
-    ));
-
-    // Create an encrypted connection over the mailbox and save its key hash.
-    _mailbox = MailboxConnection(server: _mailboxServer, shortKey: shortKey);
-    print('Initializing mailbox.');
+  Future<String> open() async {
+    _mailbox = MailboxConnection(
+      url: relayUrl,
+      appId: appId,
+    );
     await _mailbox.initialize();
-    print('Exchanging versions.');
-    _remoteVersion = await _mailbox.exchangeVersions(version);
-    _registerEvent(PortalLinked(sharedKeyHash: sha256(_mailbox.key)));
+
+    _shortKey = CodeGenerator.generateShortKey();
+    return codeGenerator.payloadToCode(CodePayload(
+      nameplate: utf8.encode(_mailbox.nameplate),
+      key: _shortKey,
+    ));
+  }
+
+  Future<Uint8List> waitForLink() async {
+    return await _setupLink();
+  }
+
+  Future<Uint8List> openAndLinkTo(String code) async {
+    final payload = codeGenerator.codeToPayload(code);
+    _shortKey = payload.key;
+
+    _mailbox = MailboxConnection(
+      url: relayUrl,
+      appId: appId,
+      nameplate: utf8.decode(payload.nameplate),
+    );
+    await _mailbox.initialize();
+
+    // print('Linking to $code');
+    return await _setupLink();
+  }
+
+  Future<Uint8List> _setupLink() async {
+    // Create an encrypted connection over the mailbox and save its key hash.
+    final encryptedMailbox = EncryptedMailboxConnection(
+      mailbox: _mailbox,
+      shortKey: _shortKey,
+    );
+    await encryptedMailbox.initialize();
+    _keyHash = encryptedMailbox.computeKeyHash();
 
     // Try several connections to the other client.
-    _client = DilatedConnection(mailbox: _mailbox);
+    _client = DilatedConnection(mailbox: encryptedMailbox);
     await _client.establishConnection();
-    _registerEvent(PortalReady());
+
+    return _keyHash;
   }
 
-  /// Opens this portal.
-  Future<String> open() async {
-    unawaited(_setup());
-    return (await events.whereType<PortalOpened>().first).code;
-  }
-
-  /// Waits for a link.
-  Future<Uint8List> waitForLink() async {
-    return (await events.whereType<PortalLinked>().first).sharedKeyHash;
-  }
-
-  /// Opens this portal and links it to the given [code].
-  Future<Uint8List> openAndLinkTo(String code) async {
-    unawaited(_setup(code));
-    return (await events.whereType<PortalLinked>().first).sharedKeyHash;
-  }
-
-  Future<void> waitUntilReady() => events.whereType<PortalReady>().first;
-
-  /// Sends the given message to the linked portal.
   void send(Uint8List message) => _client.send(message);
-
-  /// Receives a message from the linked portal.
   Future<Uint8List> receive() => _client.receive();
-
-  Future<void> close() async {
-    //await _mailbox.close();
-  }
 }
