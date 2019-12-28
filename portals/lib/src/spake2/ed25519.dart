@@ -96,13 +96,13 @@ class Point {
 
     final yForEncoding = (x & 1.bi != 0.bi) ? (y + (1.bi << 255)) : this.y;
 
-    return numberToBytes(yForEncoding);
+    return Number(yForEncoding).toBytes();
   }
 
   factory Point.fromBytes(Uint8List encoded) {
     assert(encoded.length == 32);
 
-    final unclamped = Scalar.fromBytes(encoded.reversed.toUint8List());
+    final unclamped = Scalar.fromBytes(encoded.reversed.toBytes());
     final clamp = (1.bi << 255) - 1.bi;
     final y = unclamped & clamp; // Clear MSB
     var x = _xRecover(y);
@@ -228,7 +228,7 @@ class Element extends ExtendedPoint {
     // to q. But it's comforting, and it's the same technique we use for
     // converting passwords/seeds to scalars (which _does_ need uniformity).
     final hSeed = expandArbitraryElementSeed(seed, 256 ~/ 8 + 16);
-    final y = bytesToNumber(hSeed.reversed.toUint8List()) % q;
+    final y = Number.fromBytes(hSeed.reversed.toBytes()) % q;
 
     // We try successive y values until we find a valid point.
     for (var plus = 0.bi;; plus += 1.bi) {
@@ -287,7 +287,7 @@ extension Scalar on BigInt {
   /// Scalars are encoded as 32-bytes little-endian.
   static BigInt fromBytes(Uint8List bytes) {
     assert(bytes.length == 32);
-    return bytesToNumber(bytes);
+    return Number.fromBytes(bytes);
   }
 
   static BigInt clampedFromBytes(Uint8List bytes) {
@@ -307,13 +307,13 @@ extension Scalar on BigInt {
     BigInt clamped = this % l;
     assert(0.bi <= clamped);
     assert(clamped < 2.bi.pow(256));
-    return numberToBytes(clamped);
+    return Number(clamped).toBytes();
   }
 
   static random([Random random]) {
     random ??= Random.secure();
     // Reduce the bias to a safe level by generating some extra bits.
-    final oversized = bytesToNumber(Uint8List.fromList([
+    final oversized = Number.fromBytes(Uint8List.fromList([
       for (var i = 0; i < 255; i++) random.nextInt(64),
     ]));
     return oversized % l;

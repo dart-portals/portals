@@ -24,7 +24,7 @@ abstract class CodeGenerator {
     final random = Random.secure();
     return [
       for (int i = 0; i < _keyLength; i++) random.nextInt(256),
-    ].toUint8List();
+    ].toBytes();
   }
 
   String payloadToCode(CodePayload payload);

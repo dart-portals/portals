@@ -22,6 +22,26 @@ extension ListComparator on List<int> {
   }
 }
 
+extension Number on BigInt {
+  static BigInt fromBytes(Uint8List bytes) =>
+      BigInt.parse(bytes.reversed.toBytes().toHex(), radix: 16);
+
+  Uint8List toBytes() => ToBytesConverter(
+          Bytes.fromHex(this.toRadixString(16).fillWithLeadingZeros(64))
+              .reversed)
+      .toBytes();
+}
+
+extension IntToNumber on int {
+  /// Turns this [int] into a [BigInt].
+  BigInt get bi => BigInt.from(this);
+}
+
+extension StringToNumber on String {
+  /// Turns this [String] into a [BigInt].
+  BigInt get bi => BigInt.parse(this);
+}
+
 final _emptyBytes = Uint8List(0);
 
 Uint8List expandPassword(Uint8List data, int numBytes) =>
@@ -32,7 +52,7 @@ BigInt passwordToScalar(Uint8List password, int scalarSizeBytes, BigInt q) {
   // passwords give nearly-uniform scalars.
   final oversized = expandPassword(password, scalarSizeBytes + 16);
   assert(oversized.length >= scalarSizeBytes);
-  final i = bytesToNumber(oversized.reversed.toUint8List());
+  final i = Number.fromBytes(oversized.reversed.toBytes());
   return i % q;
 }
 

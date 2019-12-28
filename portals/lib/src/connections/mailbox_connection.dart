@@ -46,7 +46,7 @@ class MailboxConnection {
     // Exchange secrets with the other portal.
     await server.sendMessage(
       phase: 'pake',
-      message: json.encode({'pake_v1': bytesToHex(outbound)}),
+      message: json.encode({'pake_v1': outbound.toHex()}),
     );
     Map<String, dynamic> inboundMessage;
     try {
@@ -60,7 +60,7 @@ class MailboxConnection {
 
     // Finish the spake2 encryption process.
     try {
-      final inboundBytes = hexToBytes(inboundMessage['pake_v1']);
+      final inboundBytes = Bytes.fromHex(inboundMessage['pake_v1']);
       _key = await spake.finish(inboundBytes);
     } on HkdfException {
       throw PortalEncryptionFailedException();
@@ -103,8 +103,8 @@ class MailboxConnection {
 
   /// Only messages from the same side and phase share a key.
   Uint8List _derivePhaseKey(String side, String phase) {
-    final sideHash = bytesToHex(sha256(ascii.encode(side)));
-    final phaseHash = bytesToHex(sha256(ascii.encode(phase)));
+    final sideHash = sha256(ascii.encode(side)).toHex();
+    final phaseHash = sha256(ascii.encode(phase)).toHex();
     final purpose = 'wormhole:phase:$sideHash$phaseHash';
     try {
       return Hkdf(null, _key)
@@ -116,10 +116,9 @@ class MailboxConnection {
 
   void send({@required String phase, @required String message}) {
     // Encrypt and encode the message.
-    final secretBox = SecretBox(_derivePhaseKey(server.side, phase));
-    final encrypted = secretBox.encrypt(utf8.encode(message));
-    final encoded = bytesToHex(encrypted);
-    server.sendMessage(phase: phase, message: encoded);
+    final encrypted = SecretBox(_derivePhaseKey(server.side, phase))
+        .encrypt(utf8.encode(message));
+    server.sendMessage(phase: phase, message: encrypted.toHex());
   }
 
   Future<String> receive({String phase}) async {
@@ -137,7 +136,7 @@ class MailboxConnection {
     }
 
     // Decode and decrypt the message.
-    final decoded = hexToBytes(body);
+    final decoded = Bytes.fromHex(body);
     try {
       final decrypted = SecretBox(_derivePhaseKey(side, phase))
           .decrypt(EncryptedMessage.fromList(decoded));

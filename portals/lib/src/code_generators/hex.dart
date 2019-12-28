@@ -9,12 +9,12 @@ class HexCodeGenerator implements CodeGenerator {
   CodePayload codeToPayload(String code) {
     final dash = code.indexOf('-');
     return CodePayload(
-      nameplate: hexToBytes(code.substring(0, dash)),
-      key: hexToBytes(code.substring(dash + 1)),
+      nameplate: Bytes.fromHex(code.substring(0, dash)),
+      key: Bytes.fromHex(code.substring(dash + 1)),
     );
   }
 
   @override
   String payloadToCode(CodePayload payload) =>
-      '${bytesToHex(payload.nameplate)}-${bytesToHex(payload.key)}';
+      '${payload.nameplate.toHex()}-${payload.key.toHex()}';
 }

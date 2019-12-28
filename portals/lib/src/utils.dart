@@ -1,12 +1,26 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-extension ToUint8ListConverter on Iterable<int> {
+extension Bytes on Uint8List {
+  String toHex() => this
+      .map((byte) => byte.toRadixString(16).fillWithLeadingZeros(2))
+      .join('');
+
+  static fromHex(String hexString) {
+    return <int>[
+      for (var i = 0; i < hexString.length ~/ 2; i++)
+        int.parse(hexString.substring(2 * i, 2 * i + 2), radix: 16),
+    ].toBytes();
+  }
+}
+
+extension ToBytesConverter on Iterable<int> {
   /// Turns this [Iterable<int>] into a [Uint8List].
-  Uint8List toUint8List() => Uint8List.fromList(this.toList());
+  Uint8List toBytes() => Uint8List.fromList(this.toList());
 }
 
 extension Minimum on Iterable<int> {
+  /// Returns the minimum of this list.
   int get min => this.reduce(math.min);
 }
 
@@ -17,40 +31,7 @@ extension LeadingZeros on String {
       '${[for (var i = length - this.length; i > 0; i--) '0'].join()}$this';
 }
 
-extension IntToBigInt on int {
-  /// Turns this [int] into a [BigInt].
-  BigInt get bi => BigInt.from(this);
-}
-
-extension StringToBigInt on String {
-  /// Turns this [String] into a [BigInt].
-  BigInt get bi => BigInt.parse(this);
-}
-
-extension StreamWhereType<T> on Stream<T> {
+extension FilterStreamByType<T> on Stream<T> {
   Stream<S> whereType<S extends T>() =>
       this.where((item) => item is S).cast<S>();
 }
-
-String bytesToHex(Uint8List bytes) {
-  return bytes
-      .map((byte) => byte.toRadixString(16).fillWithLeadingZeros(2))
-      .join('');
-}
-
-Uint8List hexToBytes(String hexString) {
-  final bytes = <int>[];
-  for (var i = 0; i < hexString.length ~/ 2; i++) {
-    final byteString = hexString.substring(2 * i, 2 * i + 2);
-    bytes.add(int.parse(byteString, radix: 16));
-  }
-  return bytes.toUint8List();
-}
-
-BigInt bytesToNumber(Uint8List bytes) =>
-    BigInt.parse(bytesToHex(bytes.reversed.toUint8List()), radix: 16);
-
-Uint8List numberToBytes(BigInt number) =>
-    hexToBytes(number.toRadixString(16).fillWithLeadingZeros(64))
-        .reversed
-        .toUint8List();

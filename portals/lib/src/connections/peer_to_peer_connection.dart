@@ -35,7 +35,7 @@ class PeerToPeerConnection {
     final otherRandomBytes = await receive();
 
     // Exchange the other side's reversed random bytes.
-    send(otherRandomBytes.reversed.toUint8List());
+    send(otherRandomBytes.reversed.toBytes());
     final reversedBytes = await receive();
 
     if (!DeepCollectionEquality().equals(randomBytes.reversed, reversedBytes)) {
@@ -45,7 +45,7 @@ class PeerToPeerConnection {
   }
 
   void send(List<int> message) =>
-      socket.add(SecretBox(key).encrypt(message).toUint8List());
+      socket.add(SecretBox(key).encrypt(message).toBytes());
 
   Future<Uint8List> receive() async => SecretBox(key)
       .decrypt(EncryptedMessage.fromList(await _incomingData.next));

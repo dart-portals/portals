@@ -17,8 +17,7 @@ import 'package:meta/meta.dart';
 import 'ed25519.dart';
 import 'utils.dart';
 
-Uint8List sha256(List<int> data) =>
-    crypto.sha256.convert(data).bytes.toUint8List();
+Uint8List sha256(List<int> data) => crypto.sha256.convert(data).bytes.toBytes();
 
 final s = Element.arbitraryElement(ascii.encode('symmetric'));
 
@@ -64,15 +63,14 @@ class _Spake2 {
 
     this._inboundMessage = inboundMessage;
 
-    final inboundElement =
-        Element.fromBytes(inboundMessage.reversed.toUint8List());
+    final inboundElement = Element.fromBytes(inboundMessage.reversed.toBytes());
 
     final pwUnblinding = myUnblinding.fastScalarMult(-_pwScalar);
     final kElem = (inboundElement + pwUnblinding).fastScalarMult(_xyScalar);
     final kBytes = kElem.toBytes();
 
-    final msg1 = _inboundMessage.reversed.toUint8List();
-    final msg2 = _outboundMessage.reversed.toUint8List();
+    final msg1 = _inboundMessage.reversed.toBytes();
+    final msg2 = _outboundMessage.reversed.toBytes();
 
     // Since this function needs to deterministically produce the same key on
     // both clients and the inbound message of one client is the outbound
@@ -98,7 +96,7 @@ extension _BytesSender on SendPort {
 
 extension _BytesReceiver on StreamQueue {
   Future<Uint8List> receiveBytes() async =>
-      (await this.next as List).cast<int>().toUint8List();
+      (await this.next as List).cast<int>().toBytes();
 }
 
 void _createSpake2(SendPort sendPort) async {

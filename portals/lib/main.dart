@@ -16,7 +16,7 @@ void main() async {
   await Isolate.spawn(otherMain, code);
 
   final key = await portal.waitForLink();
-  print('Portal linked using key ${bytesToHex(key)}.');
+  print('Portal linked using key ${key.toHex()}.');
 
   await portal.waitUntilReady();
   print(utf8.decode(await portal.receive()));
@@ -27,7 +27,7 @@ void otherMain(String code) async {
   print('Connecting to portal $code');
 
   final key = await portal.openAndLinkTo(code);
-  print('Portal linked using key ${bytesToHex(key)}.');
+  print('Portal linked using key ${key.toHex()}.');
 
   await portal.waitUntilReady();
   await portal.send(utf8.encode('Hi there.'));

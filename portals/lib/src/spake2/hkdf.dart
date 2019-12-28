@@ -13,7 +13,7 @@ class HkdfException {
 }
 
 Uint8List _extract(Uint8List salt, Uint8List inputKeyMaterial) {
-  salt ??= List.filled(sha256.blockSize, 0).toUint8List();
+  salt ??= List.filled(sha256.blockSize, 0).toBytes();
   return Hmac(sha256, salt).convert(inputKeyMaterial).bytes;
 }
 
