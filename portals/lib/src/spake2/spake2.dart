@@ -96,7 +96,7 @@ extension _BytesSender on SendPort {
 
 extension _BytesReceiver on StreamQueue {
   Future<Uint8List> receiveBytes() async =>
-      (await this.next as List).cast<int>().toBytes();
+      (await next as List).cast<int>().toBytes();
 }
 
 void _createSpake2(SendPort sendPort) async {

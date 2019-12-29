@@ -9,6 +9,7 @@ class HkdfException {
 
   final String message;
 
+  @override
   String toString() => message;
 }
 

@@ -31,6 +31,5 @@ extension LeadingZeros on String {
 }
 
 extension FilterStreamByType<T> on Stream<T> {
-  Stream<S> whereType<S extends T>() =>
-      this.where((item) => item is S).cast<S>();
+  Stream<S> whereType<S extends T>() => where((item) => item is S).cast<S>();
 }
