@@ -1,20 +1,19 @@
-TODO: header
+## Welcome to the portals package!
+
+> "With it, you can create your own portals.
+> These intra-dimensional gates have proven to be completely safe."
+> ~ GLaDOS
 
 Portals are strongly encrypted peer-to-peer connections.
 Inspired by [Magic Wormhole](https://github.com/warner/magic-wormhole/).
 
 TODO: Flutter web & app demo
 
-> It's a great idea to use this package!
-> "With it, you can create your own portals.
-> These intra-dimensional gates have proven to be completely safe."
-> ~ GLaDOS
-
 ## Features
 
 ❤️ **Easy to use:**
 Portals connect by letting users transcribe short human-readable codes from one device to another.
-There's a beautiful pre-built UI for Flutter.
+TODO: There's a beautiful pre-built UI for Flutter.
 
 🔒 **Secure:**
 Strong end-to-end encryption using Spake2 is built in.
@@ -47,27 +46,51 @@ The portal returns a code that uniquely identifies the portal and can be used by
 ```dart
 String code = await portal.open();
 // TODO: Show the code to the user.
-await portal.waitForLink();
+String key = await portal.waitForLink();
 ```
 
-The first user transcribes the portal code to the second user in the real world or via existing communication channels.
+The first user transcribes the portal `code` to the second user in the real world or via existing communication channels.
 The second user can then link the two portals:
 
 ```dart
-await portal.linkTo(code);
+String key = await portal.linkTo(code);
 ```
 
 Now the two portals are linked.
-Anything that goes into one of the two portals comes out the other.
+Optionally, you can let the users compare the `key` to completely rule out man-in-the-middle attacks.
+
+You can also check the version of the other portal.
+It can be used to allow background compatibility between some versions of your protocol or to ask the user to upgrade.
+
+```dart
+if (portal.version < portal.remoteVersion) {
+  // Maybe ask the user to upgrade the app.
+  portal.close();
+}
+```
+
+In the background, both clients try to establish a peer-to-peer connection to each other.
+Wait for it by calling:
+
+```dart
+await portal.waitUntilReady();
+```
+
+Now, anything that goes into one of the two portals comes out the other.
 
 ```dart
 portal.add(something);
 var somethingElse = await portal.receive();
-portal.listen(print);
 ```
 
 ## Send objects
 
+TODO
+
 ## How it works
 
+TODO
+
 ## How it relates to magic wormhole
+
+TODO
