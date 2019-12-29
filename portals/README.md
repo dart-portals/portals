@@ -9,6 +9,9 @@ Inspired by [Magic Wormhole](https://github.com/warner/magic-wormhole/).
 
 TODO: Flutter web & app demo
 
+> ⚠️ **This package is still in technical preview**.
+> The API may change substantially in the future and it's not safe to use this package in production yet – several features like reconnecting when the network is lost, or using a transfer server if the two devices can't see each other still need to be implemented.
+
 ## Features
 
 ❤️ **Easy to use:**
