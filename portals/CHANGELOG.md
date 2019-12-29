@@ -1,3 +1,8 @@
+## 0.0.3 – 2019-12-29
+
+- Add boilerplate for example.
+- Fix some analysis issues.
+
 ## 0.0.2 – 2019-12-29
 
 - Add this changelog.
