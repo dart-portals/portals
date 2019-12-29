@@ -58,7 +58,7 @@ class Portal {
 
     // Connect to the server.
     _server = ServerConnection(url: relayUrl);
-    _server.connect();
+    await _server.connect();
     _registerEvent(PortalServerReached());
 
     // Set up the mailbox server.

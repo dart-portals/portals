@@ -1,7 +1,7 @@
 name: portals
-description: A Dart implementation of the magic wormhole.
-author: Marcel Garus <marcel.garus@gmail.com>
-homepage: https://github.com/marcelgarus/magic_wormhole
+description: Portals are strongly encrypted peer-to-peer connections. Inspired by Magic Wormhole.
+version: 0.0.2
+homepage: https://github.com/marcelgarus/portals
 
 environment:
   sdk: ">=2.6.0 <3.0.0"

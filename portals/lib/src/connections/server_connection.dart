@@ -39,7 +39,7 @@ class ServerConnection {
     } on WebSocketChannelException {
       throw PortalCannotConnectToServerException(url);
     } on FormatException {
-      close();
+      await close();
       throw PortalServerCorruptException('Portal sent a non-json packet.');
     }
   }
@@ -72,7 +72,7 @@ class ServerConnection {
     } on FormatException {
       throw PortalServerCorruptException('Portal sent a non-json packet.');
     } on TypeError {
-      close();
+      await close();
       throw PortalServerCorruptException(
           'The server sent a packet without a type.');
     }

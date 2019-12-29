@@ -43,6 +43,7 @@ class Ed25519Exception implements Exception {
 
   final String message;
 
+  @override
   String toString() => message;
 }
 
@@ -94,7 +95,7 @@ class Point {
     assert(y >= 0.bi);
     assert(y < (1.bi << 255));
 
-    final yForEncoding = (x & 1.bi != 0.bi) ? (y + (1.bi << 255)) : this.y;
+    final yForEncoding = (x & 1.bi != 0.bi) ? (y + (1.bi << 255)) : y;
 
     return Number(yForEncoding).toBytes();
   }
@@ -118,6 +119,7 @@ class Point {
     return point;
   }
 
+  @override
   String toString() => '($x, $y)';
 }
 
@@ -134,7 +136,7 @@ class ExtendedPoint {
   /// Converts this extended point into a normal ("affine") [Point].
   Point toAffine() => Point(x, y) * z.inv % q;
 
-  bool get isZero => x == 0 && y % q == z % q && y != 0;
+  bool get isZero => x == 0.bi && y % q == z % q && y != 0.bi;
 
   String toString() => '($x, $y, $z, $t)';
 }

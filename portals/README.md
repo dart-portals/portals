@@ -1,16 +1,17 @@
-## Welcome to the portals package!
 
-> "With it, you can create your own portals.
-> These intra-dimensional gates have proven to be completely safe."
-> ~ GLaDOS
 
 Portals are strongly encrypted peer-to-peer connections.
 Inspired by [Magic Wormhole](https://github.com/warner/magic-wormhole/).
 
+> Welcome to the portals package!
+> "With it, you can create your own portals.
+> These intra-dimensional gates have proven to be completely safe."
+> ~ GLaDOS
+
 TODO: Flutter web & app demo
 
-> ⚠️ **This package is still in technical preview**.
-> The API may change substantially in the future and it's not safe to use this package in production yet – several features like reconnecting when the network is lost, or using a transfer server if the two devices can't see each other still need to be implemented.
+⚠️ **This package is still in technical preview**.
+The API may change substantially in the future and it's not safe to use this package in production yet – several features like reconnecting when the network is lost, or using a transfer server if the two devices can't see each other still need to be implemented.
 
 ## Features
 
@@ -30,10 +31,6 @@ That makes portals incredibly fast when used on the same wifi or in the same geo
 There are no native dependencies.
 That also means, portals work anywhere where Dart runs: on mobile, desktop & the web.
 Portals use lightweight WebSockets to communicate.
-
-## Getting started
-
-TODO: add portals as a dependency
 
 ## How to use
 
@@ -67,7 +64,7 @@ It can be used to allow background compatibility between some versions of your p
 
 ```dart
 if (portal.version < portal.remoteVersion) {
-  // Maybe ask the user to upgrade the app.
+  // TODO: Maybe ask the user to upgrade the app.
   portal.close();
 }
 ```
@@ -97,3 +94,17 @@ TODO
 ## How it relates to magic wormhole
 
 TODO
+
+
+<div style="background:#29339B;width:200pt;height:20pt;"></div>
+<div style="background:#FF5964;width:200pt;height:20pt;"></div>
+<div style="background:#FFE74C;width:200pt;height:20pt;"></div>
+<div style="background:#FFFAFF;width:200pt;height:20pt;"></div>
+<div style="background:#D8DDEF;width:200pt;height:20pt;"></div>
+
+---
+
+<details>
+<summary>What is this?</summary>
+Just testing what elements are supported my pub.dev's markdown engine.
+</details>

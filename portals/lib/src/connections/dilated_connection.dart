@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
+import 'package:pedantic/pedantic.dart';
 
 import 'mailbox_connection.dart';
 import 'peer_to_peer_connection.dart';
@@ -21,7 +22,7 @@ class DilatedConnection {
 
   Future<void> _foundConnection(PeerToPeerConnection candidate) async {
     if (_connection != null) {
-      candidate.close();
+      await candidate.close();
       return;
     }
     if (_isLeader == null) {
@@ -38,7 +39,7 @@ class DilatedConnection {
         _connection = candidate;
         connectionFound.signal();
       } on StateError {
-        candidate.close();
+        await candidate.close();
       }
     }
   }
@@ -53,7 +54,7 @@ class DilatedConnection {
       for (final address in serverAddresses)
         await startServer(address, onConnected: (Socket socket) async {
           // print('Someone connected to our server at ${socket.port}');
-          _foundConnection(await PeerToPeerConnection.establish(
+          await _foundConnection(await PeerToPeerConnection.establish(
             socket: socket,
             key: mailbox.key,
           ));
@@ -86,7 +87,7 @@ class DilatedConnection {
           ? Duration(milliseconds: int.parse(server['delay']))
           : Duration.zero;
       Future.delayed(delay, () async {
-        _foundConnection(await PeerToPeerConnection.establish(
+        await _foundConnection(await PeerToPeerConnection.establish(
           socket: await Socket.connect(server['address'], server['port']),
           key: mailbox.key,
         ));
@@ -104,7 +105,7 @@ class DilatedConnection {
     @required void Function(Socket socket) onConnected,
   }) async {
     final server = await ServerSocket.bind(ip, 0);
-    server.first.then(onConnected);
+    unawaited(server.first.then(onConnected));
     return server;
   }
 

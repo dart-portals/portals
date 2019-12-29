@@ -45,11 +45,11 @@ class _Spake2 {
     assert(!_started);
     _started = true;
 
-    this._xyScalar = Scalar.random(random);
-    this._xyElement = base.fastScalarMult(_xyScalar);
+    _xyScalar = Scalar.random(random);
+    _xyElement = base.fastScalarMult(_xyScalar);
     final pwBlinding = myBlinding.fastScalarMult(_pwScalar);
     final messageElem = _xyElement + pwBlinding;
-    this._outboundMessage = messageElem.toBytes();
+    _outboundMessage = messageElem.toBytes();
     return _outboundMessage;
   }
 
@@ -61,7 +61,7 @@ class _Spake2 {
     assert(!_finished);
     _finished = true;
 
-    this._inboundMessage = inboundMessage;
+    _inboundMessage = inboundMessage;
 
     final inboundElement = Element.fromBytes(inboundMessage.reversed.toBytes());
 
@@ -91,7 +91,7 @@ class _Spake2 {
 }
 
 extension _BytesSender on SendPort {
-  void sendBytes(Uint8List list) => this.send(list.toList());
+  void sendBytes(Uint8List list) => send(list.toList());
 }
 
 extension _BytesReceiver on StreamQueue {
@@ -131,7 +131,7 @@ class Spake2 {
 
   Future<Uint8List> start() async {
     _port = ReceivePort();
-    Isolate.spawn(_createSpake2, _port.sendPort);
+    await Isolate.spawn(_createSpake2, _port.sendPort);
     _receivePort = StreamQueue(_port);
     _sendPort = await _receivePort.next as SendPort;
 
