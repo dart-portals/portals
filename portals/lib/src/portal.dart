@@ -52,8 +52,8 @@ class Portal {
   Future<void> _setup([String code]) async {
     // Extract short key and nameplate from the code.
     final payload = code == null ? null : codeGenerator.codeToPayload(code);
-    Uint8List shortKey = payload?.key ?? CodeGenerator.generateShortKey();
-    String nameplate =
+    final shortKey = payload?.key ?? CodeGenerator.generateShortKey();
+    var nameplate =
         payload?.nameplate == null ? null : utf8.decode(payload?.nameplate);
 
     // Connect to the server.

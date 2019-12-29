@@ -138,12 +138,14 @@ class ExtendedPoint {
 
   bool get isZero => x == 0.bi && y % q == z % q && y != 0.bi;
 
+  @override
   String toString() => '($x, $y, $z, $t)';
 }
 
 class Element extends ExtendedPoint {
   Element(ExtendedPoint p) : super(p.x, p.y, p.z, p.t);
 
+  @override
   Element operator +(ExtendedPoint other) {
     assert(other is Element);
 
@@ -191,7 +193,7 @@ class Element extends ExtendedPoint {
     scalar %= l;
     if (scalar == 0.bi) return zero;
 
-    final a = this.scalarMult(scalar >> 1).doubleElement();
+    final a = scalarMult(scalar >> 1).doubleElement();
     return (scalar & 1.bi != 0.bi) ? (a + this) : a;
   }
 
@@ -199,18 +201,17 @@ class Element extends ExtendedPoint {
     scalar %= l;
     if (scalar == 0.bi) return zero;
 
-    final a = this.fastScalarMult(scalar >> 1).doubleElement();
+    final a = fastScalarMult(scalar >> 1).doubleElement();
     return (scalar & 1.bi != 0.bi) ? a.fastAdd(this) : a;
   }
 
-  Element negate() => Element(this.scalarMult(l - 2.bi));
+  Element negate() => Element(scalarMult(l - 2.bi));
 
   Element operator -(Element other) => this + other.negate();
   operator ==(Object other) =>
-      other is Element &&
-      other.toBytes().toString() == this.toBytes().toString();
+      other is Element && other.toBytes().toString() == toBytes().toString();
 
-  Uint8List toBytes() => this.toAffine().toBytes();
+  Uint8List toBytes() => toAffine().toBytes();
 
   /// This strictly only accepts elements in the right subgroup.
   factory Element.fromBytes(Uint8List bytes) {
@@ -282,7 +283,7 @@ class Element extends ExtendedPoint {
 
 extension Scalar on BigInt {
   /// The inversion of this scalar.
-  BigInt get inv => this.modPow(q - 2.bi, q);
+  BigInt get inv => modPow(q - 2.bi, q);
 
   BigInt get squared => this * this;
 

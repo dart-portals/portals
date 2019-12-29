@@ -10,10 +10,10 @@ extension ListComparator on List<int> {
   /// Compares this list with the other one. The smaller list is the one with
   /// the smaller element at the first position where the elements of the two
   /// lists are not the same.
-  operator <(List<int> other) {
-    assert(this.length == other.length);
+  bool operator <(List<int> other) {
+    assert(length == other.length);
 
-    for (int i = 0; i < length; i++) {
+    for (var i = 0; i < length; i++) {
       if (this[i] != other[i]) {
         return this[i] < other[i];
       }
@@ -27,8 +27,7 @@ extension Number on BigInt {
       BigInt.parse(bytes.reversed.toBytes().toHex(), radix: 16);
 
   Uint8List toBytes() => ToBytesConverter(
-          Bytes.fromHex(this.toRadixString(16).fillWithLeadingZeros(64))
-              .reversed)
+          Bytes.fromHex(toRadixString(16).fillWithLeadingZeros(64)).reversed)
       .toBytes();
 }
 
