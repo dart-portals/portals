@@ -1,3 +1,9 @@
+## 0.0.4 – 2019-12-29
+
+- Laxen dependencies on `pedantic` so the package can be used together with Flutter.
+- Fix some analysis issues.
+- Fix `version` parameter in readme.
+
 ## 0.0.3 – 2019-12-29
 
 - Add boilerplate for example.
