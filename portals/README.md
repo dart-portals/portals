@@ -37,7 +37,7 @@ Portals use lightweight WebSockets to communicate.
 To connect two devices, you need to create a portal on each of them.
 
 ```dart
-var portal = Portal(appId: 'my.app.example.com', version: '1.0.0');
+var portal = Portal(appId: 'my.app.example.com', version: Version.parse('1.0.0'));
 ```
 
 One client needs to open a new portal.
