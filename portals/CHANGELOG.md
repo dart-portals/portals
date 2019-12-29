@@ -1,3 +1,8 @@
+## 0.0.5 – 2019-12-29
+
+- Laxen dependencies on `collection` so the package can be used together with Flutter.
+- Fix some analysis issues.
+
 ## 0.0.4 – 2019-12-29
 
 - Laxen dependencies on `pedantic` so the package can be used together with Flutter.
@@ -15,8 +20,8 @@
 - Make package description longer.
 - Point to correct GitHub repository.
 - Add pedantic analysis.
-- Fix some analysis issues.
 - Clean up readme.
+- Fix some analysis issues.
 
 ## 0.0.1 – 2019-12-29
 
