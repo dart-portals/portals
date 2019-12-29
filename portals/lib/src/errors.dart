@@ -34,6 +34,7 @@ class PortalException implements Exception {
 
   String get _suggestedFix => '$suggestedFix\n';
 
+  @override
   String toString() {
     return [
       _summary,

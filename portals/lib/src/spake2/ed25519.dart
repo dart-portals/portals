@@ -208,7 +208,9 @@ class Element extends ExtendedPoint {
   Element negate() => Element(scalarMult(l - 2.bi));
 
   Element operator -(Element other) => this + other.negate();
-  operator ==(Object other) =>
+
+  @override
+  bool operator ==(Object other) =>
       other is Element && other.toBytes().toString() == toBytes().toString();
 
   Uint8List toBytes() => toAffine().toBytes();
@@ -307,13 +309,13 @@ extension Scalar on BigInt {
   }
 
   Uint8List toBytes() {
-    BigInt clamped = this % l;
+    final clamped = this % l;
     assert(0.bi <= clamped);
     assert(clamped < 2.bi.pow(256));
     return Number(clamped).toBytes();
   }
 
-  static random([Random random]) {
+  static BigInt random([Random random]) {
     random ??= Random.secure();
     // Reduce the bias to a safe level by generating some extra bits.
     final oversized = Number.fromBytes(Uint8List.fromList([

@@ -26,7 +26,7 @@ class PeerToPeerConnection {
 
   final Socket socket;
   final Uint8List key;
-  StreamQueue<Uint8List> _incomingData;
+  final StreamQueue<Uint8List> _incomingData;
 
   Future<void> ensureEncryptionAndMeasureLatency() async {
     // Exchange messages containing random bytes.
