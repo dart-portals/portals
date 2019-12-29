@@ -1,6 +1,6 @@
 name: portals
 description: Portals are strongly encrypted peer-to-peer connections. Inspired by Magic Wormhole.
-version: 0.0.3
+version: 0.0.4
 homepage: https://github.com/marcelgarus/portals
 
 environment:
@@ -13,5 +13,5 @@ dependencies:
   crypto: ^2.1.3
   pinenacl: ^0.1.3-dev
   collection: ^1.14.12
-  pedantic: ^1.9.0
+  pedantic: ^1.8.0
   version: ^1.0.3
