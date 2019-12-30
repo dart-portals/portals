@@ -1,3 +1,9 @@
+## 0.0.6 – 2019-12-30
+
+- Don't transfer `Version`s anymore, but rather more generic info `String`s. Users can still exchange versions, but also human-readable display names or something like that. It just makes portals more flexible and the API surface easier.
+- Remove `version` dependency.
+- Rename *code* to *phrase*. The term *code generator* conflicts with actual Dart code generators.
+
 ## 0.0.5 – 2019-12-29
 
 - Laxen dependencies on `collection` so the package can be used together with Flutter.
