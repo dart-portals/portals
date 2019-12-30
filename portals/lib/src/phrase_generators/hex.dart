@@ -1,20 +1,19 @@
-import 'package:portals/src/spake2/utils.dart';
+import '../utils.dart';
+import 'phrase_generator.dart';
 
-import 'code_generator.dart';
-
-class HexCodeGenerator implements CodeGenerator {
+class HexCodeGenerator implements PhraseGenerator {
   const HexCodeGenerator();
 
   @override
-  CodePayload codeToPayload(String code) {
+  PhrasePayload phraseToPayload(String code) {
     final dash = code.indexOf('-');
-    return CodePayload(
+    return PhrasePayload(
       nameplate: Bytes.fromHex(code.substring(0, dash)),
       key: Bytes.fromHex(code.substring(dash + 1)),
     );
   }
 
   @override
-  String payloadToCode(CodePayload payload) =>
+  String payloadToPhrase(PhrasePayload payload) =>
       '${payload.nameplate.toHex()}-${payload.key.toHex()}';
 }

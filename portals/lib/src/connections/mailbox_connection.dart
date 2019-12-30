@@ -69,14 +69,14 @@ class MailboxConnection {
     }
   }
 
-  /// Exchanges the versions of this and the other portal's app protocol.
-  Future<Version> exchangeVersions(Version myVersion) async {
+  /// Exchanges the info of this and the other portal. Infos are user defined
+  /// and typically contain meta-information, like understood protocols or a
+  /// human-readable name of each side.
+  Future<String> exchangeInfo(String myInfo) async {
     // print('${side.substring(0, 3)}: Sending my version $myVersion.');
     send(
       phase: 'versions',
-      message: json.encode({
-        'app_version': myVersion.toString(),
-      }),
+      message: myInfo,
     );
     final response = await receive(phase: 'versions');
     // print('${side.substring(0, 3)}: Versions received: $response');
@@ -85,20 +85,8 @@ class MailboxConnection {
     // Release the nameplate for the mailbox so other portals can use it.
     server.releaseNameplate();
 
-    // Parse the response.
-    Map<String, dynamic> body;
-    try {
-      body = json.decode(response);
-    } on FormatException {
-      throw OtherPortalCorruptException(
-          'The other portal sent a non-json version message.');
-    }
-    try {
-      return Version.parse(body['app_version'] as String);
-    } on FormatException {
-      throw OtherPortalCorruptException(
-          'Other portal sent invalid semantic version: ${body['app_versions']}');
-    }
+    // Return the response.
+    return response;
   }
 
   /// Only messages from the same side and phase share a key.

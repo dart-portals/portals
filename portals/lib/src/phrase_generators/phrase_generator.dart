@@ -6,8 +6,8 @@ import 'package:meta/meta.dart';
 import '../utils.dart';
 
 @immutable
-class CodePayload {
-  CodePayload({@required this.nameplate, @required this.key})
+class PhrasePayload {
+  PhrasePayload({@required this.nameplate, @required this.key})
       : assert(nameplate != null),
         assert(nameplate.isNotEmpty),
         assert(key != null),
@@ -17,7 +17,7 @@ class CodePayload {
   final Uint8List key;
 }
 
-abstract class CodeGenerator {
+abstract class PhraseGenerator {
   static const _keyLength = 2;
 
   static Uint8List generateShortKey() {
@@ -27,6 +27,6 @@ abstract class CodeGenerator {
     ].toBytes();
   }
 
-  String payloadToCode(CodePayload payload);
-  CodePayload codeToPayload(String code);
+  String payloadToPhrase(PhrasePayload payload);
+  PhrasePayload phraseToPayload(String code);
 }

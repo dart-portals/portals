@@ -1,19 +1,17 @@
 import 'dart:convert';
 import 'dart:isolate';
 
-import 'package:version/version.dart';
-
 import 'portals.dart';
 import 'src/utils.dart';
 
 const appId = 'example.com';
 
 void main() async {
-  final portal = Portal(appId: appId, version: Version.parse('1.0.0'));
-  final code = await portal.open();
+  final portal = Portal(appId: appId);
+  final phrase = await portal.open();
 
-  print(code);
-  await Isolate.spawn(otherMain, code);
+  print(phrase);
+  await Isolate.spawn(otherMain, phrase);
 
   final key = await portal.waitForLink();
   print('Portal linked using key ${key.toHex()}.');
@@ -22,11 +20,11 @@ void main() async {
   print(utf8.decode(await portal.receive()));
 }
 
-void otherMain(String code) async {
-  final portal = Portal(appId: appId, version: Version.parse('1.0.1'));
-  print('Connecting to portal $code');
+void otherMain(String phrase) async {
+  final portal = Portal(appId: appId);
+  print('Connecting to portal $phrase');
 
-  final key = await portal.openAndLinkTo(code);
+  final key = await portal.openAndLinkTo(phrase);
   print('Portal linked using key ${key.toHex()}.');
 
   await portal.waitUntilReady();

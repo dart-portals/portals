@@ -6,9 +6,8 @@ import 'package:meta/meta.dart';
 import 'package:pedantic/pedantic.dart';
 import 'package:portals/src/connections/mailbox_server_connection.dart';
 import 'package:portals/src/connections/server_connection.dart';
-import 'package:version/version.dart';
 
-import 'code_generators/code_generator.dart';
+import 'phrase_generators/phrase_generator.dart';
 import 'connections/dilated_connection.dart';
 import 'connections/mailbox_connection.dart';
 import 'constants.dart';
@@ -19,23 +18,24 @@ import 'utils.dart';
 class Portal {
   Portal({
     @required this.appId,
-    @required this.version,
-    this.relayUrl = defaultRelayUrl,
-    this.codeGenerator = defaultCodeGenerator,
+    this.info = '',
+    this.mailboxServerUrl = defaultMailboxServerUrl,
+    this.phraseGenerator = defaultCodeGenerator,
   })  : assert(appId != null),
         assert(appId.isNotEmpty),
-        assert(relayUrl != null),
-        assert(relayUrl.isNotEmpty) {
+        assert(info != null),
+        assert(mailboxServerUrl != null),
+        assert(mailboxServerUrl.isNotEmpty) {
     _events = _eventController.stream.asBroadcastStream();
   }
 
   final String appId;
-  final Version version;
-  final String relayUrl;
-  final CodeGenerator codeGenerator;
+  final String info;
+  final String mailboxServerUrl;
+  final PhraseGenerator phraseGenerator;
 
-  Version _remoteVersion;
-  Version get remoteVersion => _remoteVersion;
+  String _remoteInfo;
+  String get remoteInfo => _remoteInfo;
 
   // Different layers of connections.
   ServerConnection _server;
@@ -49,15 +49,16 @@ class Portal {
   Stream<PortalEvent> get events => _events;
   void _registerEvent(PortalEvent event) => _eventController.add(event);
 
-  Future<void> _setup([String code]) async {
-    // Extract short key and nameplate from the code.
-    final payload = code == null ? null : codeGenerator.codeToPayload(code);
-    final shortKey = payload?.key ?? CodeGenerator.generateShortKey();
+  Future<void> _setup([String phrase]) async {
+    // Extract short key and nameplate from the phrase.
+    final payload =
+        phrase == null ? null : phraseGenerator.phraseToPayload(phrase);
+    final shortKey = payload?.key ?? PhraseGenerator.generateShortKey();
     var nameplate =
         payload?.nameplate == null ? null : utf8.decode(payload?.nameplate);
 
     // Connect to the server.
-    _server = ServerConnection(url: relayUrl);
+    _server = ServerConnection(url: mailboxServerUrl);
     await _server.connect();
     _registerEvent(PortalServerReached());
 
@@ -70,7 +71,7 @@ class Portal {
     await _mailboxServer.openMailbox(mailbox);
 
     _registerEvent(PortalOpened(
-      code: codeGenerator.payloadToCode(CodePayload(
+      phrase: phraseGenerator.payloadToPhrase(PhrasePayload(
         key: shortKey,
         nameplate: utf8.encode(nameplate),
       )),
@@ -79,7 +80,7 @@ class Portal {
     // Create an encrypted connection over the mailbox and save its key hash.
     _mailbox = MailboxConnection(server: _mailboxServer, shortKey: shortKey);
     await _mailbox.initialize();
-    _remoteVersion = await _mailbox.exchangeVersions(version);
+    _remoteInfo = await _mailbox.exchangeInfo(info);
     _registerEvent(PortalLinked(sharedKeyHash: sha256(_mailbox.key)));
 
     // Try several connections to the other client.
@@ -92,7 +93,7 @@ class Portal {
   /// Opens this portal.
   Future<String> open() async {
     unawaited(_setup());
-    return (await events.whereType<PortalOpened>().first).code;
+    return (await events.whereType<PortalOpened>().first).phrase;
   }
 
   /// Waits for a link.
