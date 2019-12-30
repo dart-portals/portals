@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 import 'package:pinenacl/secret.dart';
-import 'package:version/version.dart';
 
 import '../errors.dart';
 import '../spake2/ed25519.dart';
