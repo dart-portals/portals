@@ -3,6 +3,9 @@
 - Don't transfer `Version`s anymore, but rather more generic info `String`s. Users can still exchange versions, but also human-readable display names or something like that. It just makes portals more flexible and the API surface easier.
 - Remove `version` dependency.
 - Rename *code* to *phrase*. The term *code generator* conflicts with actual Dart code generators.
+- The reversibility of the `PhraseGenerator` now gets verified whenever a phrase gets generated in debug mode.
+- Added several utility methods and functions to make the code more readable and succinct.
+- The default phrase generator is now the new `WordsPhraseGenerators`, which turns both the nameplate and the key into a string of human-readable words.
 
 ## 0.0.5 – 2019-12-29
 
