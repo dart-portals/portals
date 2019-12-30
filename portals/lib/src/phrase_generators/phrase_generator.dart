@@ -12,19 +12,19 @@ class PhrasePayload {
       : assert(nameplate != null),
         assert(nameplate.isNotEmpty),
         assert(key != null),
-        assert(key.isNotEmpty);
+        assert(key.length == keyLength);
+
+  static const keyLength = 2;
 
   final Uint8List nameplate;
   final Uint8List key;
 }
 
 abstract class PhraseGenerator {
-  static const _keyLength = 2;
-
   static Uint8List generateShortKey() {
     final random = Random.secure();
     return [
-      for (int i = 0; i < _keyLength; i++) random.nextInt(256),
+      for (int i = 0; i < PhrasePayload.keyLength; i++) random.nextInt(256),
     ].toBytes();
   }
 
