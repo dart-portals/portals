@@ -39,7 +39,7 @@ class MailboxConnection {
 
   Future<void> initialize() async {
     // Start the spake2 encryption process.
-    final spake = Spake2(id: utf8.encode(server.appId), password: shortKey);
+    final spake = Spake2(id: server.appId.utf8encoded, password: shortKey);
     final outbound = await spake.start();
 
     // Exchange secrets with the other portal.
@@ -72,13 +72,8 @@ class MailboxConnection {
   /// and typically contain meta-information, like understood protocols or a
   /// human-readable name of each side.
   Future<String> exchangeInfo(String myInfo) async {
-    // print('${side.substring(0, 3)}: Sending my version $myVersion.');
-    send(
-      phase: 'versions',
-      message: myInfo,
-    );
+    send(phase: 'versions', message: myInfo);
     final response = await receive(phase: 'versions');
-    // print('${side.substring(0, 3)}: Versions received: $response');
 
     // We now have a confirmed secured connection with the other portal.
     // Release the nameplate for the mailbox so other portals can use it.
@@ -104,7 +99,7 @@ class MailboxConnection {
   void send({@required String phase, @required String message}) {
     // Encrypt and encode the message.
     final encrypted = SecretBox(_derivePhaseKey(server.side, phase))
-        .encrypt(utf8.encode(message));
+        .encrypt(message.utf8encoded);
     server.sendMessage(phase: phase, message: encrypted.toHex());
   }
 
