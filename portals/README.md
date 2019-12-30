@@ -37,40 +37,30 @@ Portals use lightweight WebSockets to communicate.
 To connect two devices, you need to create a portal on each of them.
 
 ```dart
-var portal = Portal(appId: 'my.app.example.com', version: Version.parse('1.0.0'));
+var portal = Portal(appId: 'my.app.example.com');
 ```
 
-One client needs to open a new portal.
-The portal returns a code that uniquely identifies the portal and can be used by the second client to link the portals.
+On the first device, open the portal. It will return a phrase that uniquely identifies it:
 
 ```dart
-String code = await portal.open();
-// TODO: Show the code to the user.
+String phrase = await portal.open();
+// TODO: Show the phrase to the user.
 String key = await portal.waitForLink();
 ```
 
-The first user transcribes the portal `code` to the second user in the real world or via existing communication channels.
+Let the user transcribes the `phrase` to the second user in the real world.
 The second user can then link the two portals:
 
 ```dart
-String key = await portal.linkTo(code);
+// TODO: Let the user enter the phrase.
+String key = await portal.openAndLinkTo(phrase);
 ```
 
 Now the two portals are linked.
 Optionally, you can let the users compare the `key` to completely rule out man-in-the-middle attacks.
 
-You can also check the version of the other portal.
-It can be used to allow background compatibility between some versions of your protocol or to ask the user to upgrade.
-
-```dart
-if (portal.version < portal.remoteVersion) {
-  // TODO: Maybe ask the user to upgrade the app.
-  portal.close();
-}
-```
-
 In the background, both clients try to establish a peer-to-peer connection to each other.
-Wait for it by calling:
+Wait for it on both sides by calling:
 
 ```dart
 await portal.waitUntilReady();
@@ -94,17 +84,3 @@ TODO
 ## How it relates to magic wormhole
 
 TODO
-
-
-<div style="background:#29339B;width:200pt;height:20pt;"></div>
-<div style="background:#FF5964;width:200pt;height:20pt;"></div>
-<div style="background:#FFE74C;width:200pt;height:20pt;"></div>
-<div style="background:#FFFAFF;width:200pt;height:20pt;"></div>
-<div style="background:#D8DDEF;width:200pt;height:20pt;"></div>
-
----
-
-<details>
-<summary>What is this?</summary>
-Just testing what elements are supported my pub.dev's markdown engine.
-</details>
