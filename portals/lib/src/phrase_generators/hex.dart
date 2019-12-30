@@ -1,8 +1,8 @@
 import '../utils.dart';
 import 'phrase_generator.dart';
 
-class HexCodeGenerator implements PhraseGenerator {
-  const HexCodeGenerator();
+class HexPhraseGenerator implements PhraseGenerator {
+  const HexPhraseGenerator();
 
   @override
   PhrasePayload phraseToPayload(String phrase) {
