@@ -1,5 +1,8 @@
+import 'dart:convert' as convert;
 import 'dart:math' as math;
 import 'dart:typed_data';
+
+import 'package:portals/src/phrase_generators/phrase_generator.dart';
 
 extension Bytes on Uint8List {
   String toHex() =>
@@ -32,4 +35,24 @@ extension LeadingZeros on String {
 
 extension FilterStreamByType<T> on Stream<T> {
   Stream<S> whereType<S extends T>() => where((item) => item is S).cast<S>();
+}
+
+extension Utf8Decode on List<int> {
+  String get utf8decoded => convert.utf8.decode(this);
+}
+
+extension Utf8Encode on String {
+  Uint8List get utf8encoded => convert.utf8.encode(this).toBytes();
+}
+
+extension PhraseToPayload on String {
+  PhrasePayload toPhrasePayload(PhraseGenerator generator) =>
+      generator.phraseToPayload(this);
+}
+
+void ifInDebugMode(void Function() run) {
+  assert(() {
+    run();
+    return true;
+  }());
 }
