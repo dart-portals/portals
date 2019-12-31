@@ -1,10 +1,11 @@
 import 'dart:convert' as convert;
 import 'dart:math' as math;
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:portals/src/phrase_generators/phrase_generator.dart';
 
-extension Bytes on Uint8List {
+extension Bytes on Iterable<int> {
   String toHex() =>
       map((byte) => byte.toRadixString(16).fillWithLeadingZeros(2)).join('');
 
@@ -14,14 +15,17 @@ extension Bytes on Uint8List {
         int.parse(hexString.substring(2 * i, 2 * i + 2), radix: 16),
     ].toBytes();
   }
-}
 
-extension ToBytesConverter on Iterable<int> {
   /// Turns this [Iterable<int>] into a [Uint8List].
   Uint8List toBytes() => Uint8List.fromList(toList());
-}
 
-extension Minimum on Iterable<int> {
+  static Uint8List generateRandom(int length) {
+    final random = Random.secure();
+    return [
+      for (var i = 0; i < length; i++) random.nextInt(256),
+    ].toBytes();
+  }
+
   /// Returns the minimum of this list.
   int get min => reduce(math.min);
 }

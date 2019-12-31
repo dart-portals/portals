@@ -26,9 +26,9 @@ extension Number on BigInt {
   static BigInt fromBytes(Uint8List bytes) =>
       BigInt.parse(bytes.reversed.toBytes().toHex(), radix: 16);
 
-  Uint8List toBytes() => ToBytesConverter(
-          Bytes.fromHex(toRadixString(16).fillWithLeadingZeros(64)).reversed)
-      .toBytes();
+  Uint8List toBytes() =>
+      Bytes(Bytes.fromHex(toRadixString(16).fillWithLeadingZeros(64)).reversed)
+          .toBytes();
 }
 
 extension IntToNumber on int {

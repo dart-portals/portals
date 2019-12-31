@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:async/async.dart';
@@ -30,7 +29,7 @@ class PeerToPeerConnection {
 
   Future<void> ensureEncryptionAndMeasureLatency() async {
     // Exchange messages containing random bytes.
-    final randomBytes = [for (var i = 0; i < 32; i++) Random().nextInt(255)];
+    final randomBytes = Bytes.generateRandom(32);
     send(randomBytes);
     final otherRandomBytes = await receive();
 

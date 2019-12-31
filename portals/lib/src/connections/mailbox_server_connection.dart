@@ -1,6 +1,5 @@
-import 'dart:math';
-
 import 'package:meta/meta.dart';
+import 'package:portals/src/spake2/utils.dart';
 
 import '../errors.dart';
 import 'server_connection.dart';
@@ -39,13 +38,16 @@ class MailboxServerConnection {
   String _side;
   String get side => _side;
 
-  void initialize() {
+  void initialize({@required bool isFirstPortal}) {
     // If two clients have the same side, that's bad – they'll just ignore
-    // everything. So, we choose a reasonably large random string as our side.
-    final random = Random();
+    // everything. So, we choose a random two-byte string as our side that
+    // contains a special ending based on whether this is the first portal.
+    // That makes it impossible for two connecting portals to have the same
+    // side.
     _side = [
-      for (var i = 0; i < 32; i++) random.nextInt(16).toRadixString(16),
-    ].join();
+      ...Bytes.generateRandom(1),
+      isFirstPortal ? 42 : 43,
+    ].toHex();
   }
 
   /// Binds this socket to the server by providing an app id and a side id,

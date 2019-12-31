@@ -110,7 +110,7 @@ class Portal {
 
     // Set up the mailbox server.
     _mailboxServer = MailboxServerConnection(server: _server, appId: appId);
-    _mailboxServer.initialize();
+    _mailboxServer.initialize(isFirstPortal: phrase == null);
     await _mailboxServer.bindAndWelcome();
     nameplate ??= await _mailboxServer.allocateNameplate();
     final mailbox = await _mailboxServer.claimNameplate(nameplate);

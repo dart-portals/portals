@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
@@ -21,12 +20,8 @@ class PhrasePayload {
 }
 
 abstract class PhraseGenerator {
-  static Uint8List generateShortKey() {
-    final random = Random.secure();
-    return [
-      for (int i = 0; i < PhrasePayload.keyLength; i++) random.nextInt(256),
-    ].toBytes();
-  }
+  static Uint8List generateShortKey() =>
+      Bytes.generateRandom(PhrasePayload.keyLength);
 
   static void ensureGeneratorReversible({
     @required PhraseGenerator generator,
