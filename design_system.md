@@ -1,3 +1,4 @@
+Font: Montserrat, Light 300
 
 <!-- Blue -->
 <div style="background:#29339B;width:200pt;height:20pt;"></div>
