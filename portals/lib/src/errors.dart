@@ -1,6 +1,6 @@
 import 'package:meta/meta.dart';
 
-enum Mood { lonely, errorly, scared }
+enum Mood { lonely, errorly, scared, happy }
 
 extension MoodToString on Mood {
   String toMoodString() {
@@ -11,6 +11,8 @@ extension MoodToString on Mood {
         return 'errorly';
       case Mood.scared:
         return 'scared';
+      case Mood.happy:
+        return 'happy';
       default:
         throw AssertionError('Unknown mood $this');
     }
