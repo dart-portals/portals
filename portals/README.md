@@ -1,17 +1,12 @@
+⚠️ **This package is still in technical preview**.
+The API may change substantially in the future and it's not safe to use this package in production yet – several features like reconnecting when the network is lost, or using a transfer server if the two devices can't see each other still need to be implemented.
 
+---
 
 Portals are strongly encrypted peer-to-peer connections.
 Inspired by [Magic Wormhole](https://github.com/warner/magic-wormhole/).
 
-> Welcome to the portals package!
-> "With it, you can create your own portals.
-> These intra-dimensional gates have proven to be completely safe."
-> ~ GLaDOS
-
 TODO: Flutter web & app demo
-
-⚠️ **This package is still in technical preview**.
-The API may change substantially in the future and it's not safe to use this package in production yet – several features like reconnecting when the network is lost, or using a transfer server if the two devices can't see each other still need to be implemented.
 
 ## Features
 
@@ -34,13 +29,48 @@ Portals use lightweight WebSockets to communicate.
 
 ## How to use
 
+### Create a portal
+
 To connect two devices, you need to create a portal on each of them.
 
 ```dart
-var portal = Portal(appId: 'my.app.example.com');
+var portal = Portal(appId: 'github.com/marcelgarus/portals');
 ```
 
-On the first device, open the portal. It will return a phrase that uniquely identifies it:
+The `appId` can be any arbitrary string used only by your application.
+It's recommended to use a url.
+
+
+Optionally you can pass in an `info` string containing meta-information like your app version or something else. It will be exchanged as soon as the portals are linked.
+
+```dart
+var portal = Portal(
+  appId: 'github.com/marcelgarus/portals',
+  info: json.encode({ 'app_version': '1.0.0', ... }),
+);
+// Later, when linked:
+print(portal.remoteInfo);
+```
+
+### Set up the portal
+
+<details>
+<summary>💙 Flutter</summary>
+
+There's a beautiful pre-built UI for Flutter that you can find nowhere yet.
+TODO
+</details>
+
+<details>
+<summary>🖥️ Command line</summary>
+
+TODO
+</details>
+
+<details>
+<summary>🎯 Pure Dart</summary>
+
+On the first device, open the portal. It will return a phrase that uniquely identifies it among other portals using your `appId`:
 
 ```dart
 String phrase = await portal.open();
@@ -48,7 +78,7 @@ String phrase = await portal.open();
 String key = await portal.waitForLink();
 ```
 
-Let the user transcribes the `phrase` to the second user in the real world.
+Let the user transcribe the `phrase` to the second user in the real world.
 The second user can then link the two portals:
 
 ```dart
@@ -65,15 +95,20 @@ Wait for it on both sides by calling:
 ```dart
 await portal.waitUntilReady();
 ```
+</details>
 
-Now, anything that goes into one of the two portals comes out the other.
+### Send stuff
+
+Anything that goes into one of the two portals comes out the other.
 
 ```dart
 portal.add(something);
 var somethingElse = await portal.receive();
 ```
 
-## Send objects
+All primitive types are supported by default, including `int`, `double`, `bool`, `List`, `Map`, `Set`. 
+
+To send arbitrary Dart objects, annotate them with `@...`.
 
 TODO
 

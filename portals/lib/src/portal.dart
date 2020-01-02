@@ -6,6 +6,7 @@ import 'package:pedantic/pedantic.dart';
 import 'package:portals/src/connections/mailbox_server_connection.dart';
 import 'package:portals/src/connections/server_connection.dart';
 
+import 'errors.dart';
 import 'phrase_generators/phrase_generator.dart';
 import 'connections/dilated_connection.dart';
 import 'connections/mailbox_connection.dart';
@@ -80,9 +81,16 @@ class Portal {
   String get remoteInfo => _remoteInfo;
   String _remoteInfo;
 
-  /// A string that uniquely identifies this portal.
+  /// A [String] that uniquely identifies this portal.
   String get phrase => _phrase;
   String _phrase;
+
+  /// A [Uint8List] that represents the key used by both portals.
+  ///
+  /// Actually, this is a hash of the key, because the actual key is irrelevant
+  /// for the rest of the app.
+  Uint8List get key => _key;
+  Uint8List _key;
 
   /// Events that this portal emits.
   Stream<PortalEvent> get events => _events;
@@ -135,7 +143,8 @@ class Portal {
     _mailbox = MailboxConnection(server: _mailboxServer, shortKey: shortKey);
     await _mailbox.initialize();
     _remoteInfo = await _mailbox.exchangeInfo(info);
-    _registerEvent(PortalLinked(sharedKeyHash: sha256(_mailbox.key)));
+    _key = sha256(_mailbox.key);
+    _registerEvent(PortalLinked(key: _key));
 
     // Try several connections to the other client.
     _registerEvent(PortalConnecting());
@@ -147,18 +156,24 @@ class Portal {
   /// Opens this portal.
   Future<String> open() async {
     unawaited(_setup());
-    return (await events.whereType<PortalOpened>().first).phrase;
-  }
-
-  /// Waits for a link.
-  Future<Uint8List> waitForLink() async {
-    return (await events.whereType<PortalLinked>().first).sharedKeyHash;
+    return waitForPhrase();
   }
 
   /// Opens this portal and links it to the given [phrase].
   Future<Uint8List> openAndLinkTo(String phrase) async {
     unawaited(_setup(phrase));
-    return (await events.whereType<PortalLinked>().first).sharedKeyHash;
+    return waitForLink();
+  }
+
+  Future<String> waitForPhrase() async {
+    if (phrase != null) return phrase;
+    return (await events.whereType<PortalOpened>().first).phrase;
+  }
+
+  /// Waits for a link.
+  Future<Uint8List> waitForLink() async {
+    if (key != null) return key;
+    return (await events.whereType<PortalLinked>().first).key;
   }
 
   Future<void> waitUntilReady() => events.whereType<PortalConnected>().first;
@@ -169,7 +184,24 @@ class Portal {
   /// Receives a message from the linked portal.
   Future<Uint8List> receive() => _client.receive();
 
+  /// Closes this portal.
   Future<void> close() async {
-    //await _mailbox.close();
+    _remoteInfo = null;
+    _phrase = null;
+    _key = null;
+
+    final hadConnection = _client != null;
+
+    _client.close();
+    _client = null;
+
+    _mailbox = null;
+
+    _mailboxServer.releaseNameplate();
+    _mailboxServer.closeMailbox(hadConnection ? Mood.happy : Mood.lonely);
+    _mailboxServer = null;
+
+    await _server.close();
+    _server = null;
   }
 }
