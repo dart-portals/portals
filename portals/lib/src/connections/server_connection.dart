@@ -1,11 +1,9 @@
-import 'dart:collection';
 import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:meta/meta.dart';
 import 'package:portals/src/close_reason.dart';
 import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/status.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../errors.dart';
