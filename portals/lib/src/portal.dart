@@ -6,6 +6,9 @@ import 'package:pedantic/pedantic.dart';
 import 'package:portals/src/connections/mailbox_server_connection.dart';
 import 'package:portals/src/connections/server_connection.dart';
 
+import 'binary/binary.dart';
+import 'binary/type_registry.dart';
+import 'close_reason.dart';
 import 'errors.dart';
 import 'phrase_generators/phrase_generator.dart';
 import 'connections/dilated_connection.dart';
@@ -15,6 +18,7 @@ import 'events.dart';
 import 'spake2/spake2.dart';
 import 'utils.dart';
 
+// ignore_for_file: todo
 /// Portals are strongly encrypted peer-to-peer connections.
 /// Inspired by [Magic Wormhole](https://github.com/warner/magic-wormhole/).
 ///
@@ -41,6 +45,7 @@ class Portal {
     this.info = '',
     this.mailboxServerUrl = defaultMailboxServerUrl,
     this.phraseGenerator = defaultCodeGenerator,
+    this.typeRegistry,
   })  : assert(appId != null),
         assert(appId.isNotEmpty),
         assert(info != null),
@@ -97,6 +102,11 @@ class Portal {
   Stream<PortalEvent> _events;
   final _eventController = StreamController<PortalEvent>();
   void _registerEvent(PortalEvent event) => _eventController.add(event);
+
+  /// The [TypeRegistry] used for retrieving [TypeAdapter]s for serializing and
+  /// deserializing types.
+  TypeRegistry typeRegistry;
+  TypeRegistry get _registry => typeRegistry ?? defaultTypeRegistry;
 
   // Different layers of connections.
   ServerConnection _server;
@@ -179,10 +189,10 @@ class Portal {
   Future<void> waitUntilReady() => events.whereType<PortalConnected>().first;
 
   /// Sends the given message to the linked portal.
-  void send(Uint8List message) => _client.send(message);
+  void send(dynamic message) => _client.send(serialize(message));
 
   /// Receives a message from the linked portal.
-  Future<Uint8List> receive() => _client.receive();
+  Future<T> receive<T>() async => deserialize(await _client.receive());
 
   /// Closes this portal.
   Future<void> close() async {
@@ -201,7 +211,7 @@ class Portal {
     _mailboxServer.closeMailbox(hadConnection ? Mood.happy : Mood.lonely);
     _mailboxServer = null;
 
-    await _server.close();
+    await _server.close(CloseReason.normal());
     _server = null;
   }
 }

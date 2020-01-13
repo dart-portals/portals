@@ -1,12 +1,16 @@
-import 'dart:convert';
 import 'dart:isolate';
 
 import 'portals.dart';
+// import 'src/binary/sample.dart' as sample;
 import 'src/utils.dart';
 
 const appId = 'example.com';
 
-void main() async {
+void main() {
+  portal();
+}
+
+void portal() async {
   final portal = Portal(appId: appId);
   final phrase = await portal.open();
 
@@ -17,7 +21,8 @@ void main() async {
   print('Portal linked using key ${key.toHex()}.');
 
   await portal.waitUntilReady();
-  print(utf8.decode(await portal.receive()));
+  print(await portal.receive());
+  print(await portal.receive());
 }
 
 void otherMain(String phrase) async {
@@ -28,5 +33,6 @@ void otherMain(String phrase) async {
   print('Portal linked using key ${key.toHex()}.');
 
   await portal.waitUntilReady();
-  await portal.send(utf8.encode('Hi there.'));
+  await portal.send('Hi there.');
+  await portal.send(Duration(days: 42, milliseconds: 123));
 }
