@@ -102,20 +102,67 @@ await portal.waitUntilReady();
 Anything that goes into one of the two portals comes out the other.
 
 ```dart
-portal.add(something);
+portal.send(something);
 var somethingElse = await portal.receive();
 ```
 
-All primitive types are supported by default, including `int`, `double`, `bool`, `List`, `Map`, `Set`. 
+All primitive types are supported by default, including `int`, `double`, `bool`, `List`, `Map`, `Set`, `Duration`, `DateTime`, `RegExp`, `StackTrace`, `Uint8List` and many more.
+Under the hood, the binary serializer is used – see its documentation for more information.
+Here's a quick summary:
 
-To send arbitrary Dart objects, annotate them with `@...`.
+TODO: The following doesn't work yet – adapters still need to be written by hand.
 
-TODO
+To send arbitrary Dart objects, annotate them with `@BinaryType()` and the fields with `@BinaryField(id)`:
+
+```dart
+part 'my_file.g.dart';
+
+@BinaryType()
+class MyClass {
+  @BinaryField(0, defaultValue: <int>[])
+  List<int> someThings;
+
+  @BinaryField(1)
+  Duration duration;
+}
+```
+
+Then, run `pub run build_runner build` in the command line to generate the `AdapterForMyClass`. Finally, register it at the beginning of your `main` method:
+
+```dart
+AdapterForMyClass().registerWithId(0);
+```
+
+Now, you can send `MyClass`es through portals!
 
 ## How it works
 
-TODO
+Sadly, true peer-to-peer connection establishment is impossible to realize – if you're looking for another running portal, you can't just try talking to all the devices in the internet.  
+Also, it's not even guaranteed that two devices see each other – they might be in different wifis which usually block incoming connection attempts.  
+That's why a central public server is needed for connection establishment. It merely offers clients the feature to leave messages for each other, thus it's called the *mailbox server*.
+By default, portals use the mailbox server at `ws://relay.magic-wormhole.io:4000/v1`, but especially if you generate a lot of traffic, you're welcome to [run your own server](https://github.com/warner/magic-wormhole-mailbox-server).
 
-## How it relates to magic wormhole
+The mailbox server manages multiple communication channels between clients, intuitively called *mailboxes*.
+The first portal asks for a new mailbox and gets a unique id identifying the mailbox on the server for the client's app id.  
+The mailbox id and a randomly generated shared key are converted into a human-readable phrase that's shown to the user.  
+The second portal lets the user input the same phrase.
+It then extracts both the mailbox id as well as the shared key.
+After connecting to the mailbox server and requesting to join the mailbox with the given id, both portals talk to each other over the mailbox server.
 
-TODO
+That's when the encryption phase begins – to make transcribing the phrase as easy as possible, the shared key is pretty small.
+For a strong encryption, both portals will need to agree on a much larger key. That's why they produce a random secret key each and derive yet another key from that.
+By exchanging these, they can agree on a key only known to both of them.  
+Imagine you can multiply numbers easily, but dividing is really hard. (More technically speaking, elements of the Edwards curve group are used instead of numbers, but who minds.)  
+Having the small shared key $s$, portals generate huge random private keys $a$ and $b$. They calculate $A = s*a$ and $B = s*b$ and exchange $A$ and $B$. Then they multiply these with their private keys – the first portal calculates $N_a = a*B$ and the second one $N_b = b*A$. Because $N_a = a*B = a*b*s = b*a*s = b*A = N_b$, both keys are equal.  
+An attacker not knowing $s$ can only observe $A$ and $B$ being exchanged, but can't derive the resulting key, making man-in-the-middle-attacks virtually impossible.
+
+Now, clients can use the mailbox to exchange encrypted messages.
+They exchange their ip addresses and try to connect to the other client.
+For each succeeding connection, they exchange a short message to verify that whoever is connected knows the encryption key.
+The first connection where this encryption verification succeeds gets chosen.  
+Now, both portals can directly talk over an encrypted peer-to-peer connection.
+
+## How it relates to Magic Wormhole
+
+The interface to the mailbox server conforms to the Magic Wormhole protocol.
+The rest doesn't.
