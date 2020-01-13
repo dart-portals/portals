@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:portals/src/close_reason.dart';
 
 enum Mood { lonely, errorly, scared, happy }
 
@@ -107,6 +108,19 @@ class PortalEncryptionFailedException extends PortalException {
               'failed. Possibly someone tried to interfere.',
           suggestedFix: 'You could try again, thereby giving both the other '
               'legitimate portal and a possible attacker another chance.',
+        );
+}
+
+class PortalClosedAbnormallyException extends PortalException {
+  final CloseReason reason;
+
+  PortalClosedAbnormallyException(this.reason)
+      : super(
+          summary: 'The portal closed abnormally.',
+          description:
+              'The other side closed the connection with the error code '
+              '${reason.rawWebsocketCode} saying "${reason.reason}".',
+          suggestedFix: 'Handle the error gracefully or ',
         );
 }
 
