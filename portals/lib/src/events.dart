@@ -17,9 +17,9 @@ class PortalOpened extends PortalEvent {
 class PortalClosed extends PortalEvent {}
 
 class PortalLinked extends PortalEvent {
-  PortalLinked({@required this.sharedKeyHash});
+  PortalLinked({@required this.key});
 
-  final Uint8List sharedKeyHash;
+  final Uint8List key;
 }
 
 class PortalUnlinked extends PortalEvent {}
