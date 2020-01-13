@@ -1,8 +1,11 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:meta/meta.dart';
+import 'package:portals/src/close_reason.dart';
 import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/status.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../errors.dart';
@@ -12,7 +15,7 @@ import '../errors.dart';
 /// Initially, the portal connects to a server. Portals use this server to
 /// negotiate an end-to-end encrypted connection and exchange ip address
 /// inforamtion in order to be able to create a direct peer-to-peer connection.
-/// /// Portals use the Magic Wormhole protocol for communicating, so if you're
+/// Portals use the Magic Wormhole protocol for communicating, so if you're
 /// wondering how the server works or you want to run your own server, check
 /// out the Magic Wormhole server repository:
 /// https://github.com/warner/magic-wormhole-mailbox-server
@@ -26,7 +29,7 @@ class ServerConnection {
   IOWebSocketChannel _server;
   bool get isConnected => _server != null;
 
-  StreamQueue<dynamic> _incomingPackets;
+  StreamQueue<String> _incomingPackets;
 
   /// Connects to the server.
   Future<void> connect() async {
@@ -35,18 +38,26 @@ class ServerConnection {
         url,
         pingInterval: Duration(minutes: 1),
       );
-      _incomingPackets = StreamQueue(_server.stream);
+      _incomingPackets = StreamQueue(_server.stream.cast<String>());
     } on WebSocketChannelException {
       throw PortalCannotConnectToServerException(url);
     } on FormatException {
-      await close();
+      await close(CloseReason.invalidData());
       throw PortalServerCorruptException('Portal sent a non-json packet.');
     }
   }
 
+  Future<void> _onClosed() async {
+    assert(_server != null);
+
+    /*if (_server.closeCode != CloseReason.normal().rawWebsocketCode) {
+      throw TODO: reconnect
+    }*/
+  }
+
   /// Closes the connection to the server.
-  Future<void> close() async {
-    await _server.sink.close();
+  Future<void> close(CloseReason reason) async {
+    await _server.sink.close(reason.rawWebsocketCode, reason.reason);
   }
 
   /// Sends a packet with the given [data] to the server.
@@ -72,7 +83,7 @@ class ServerConnection {
     } on FormatException {
       throw PortalServerCorruptException('Portal sent a non-json packet.');
     } on TypeError {
-      await close();
+      await close(CloseReason.invalidData());
       throw PortalServerCorruptException(
           'The server sent a packet without a type.');
     }
