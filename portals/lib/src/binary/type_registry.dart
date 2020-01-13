@@ -60,8 +60,7 @@ class TypeRegistry {
     final actualType = value.runtimeType.toString();
     final matchingType = bestMatchingAdapter.type.toString();
 
-    if (actualType != matchingType &&
-        actualType.replaceAll('JSArray', 'List') != matchingType) {
+    if (actualType.replaceAll('JSArray', 'List') != matchingType) {
       // Suggest adding an exact adapter.
       final suggestedId = _suggestedAdapters[actualType] ??
           _adaptersById.keys.reduce(max) + 1 + _suggestedAdapters.length;
