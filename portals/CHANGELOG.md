@@ -1,3 +1,9 @@
+## 0.0.9 – 2020-01-13
+
+- Add binary serializer: Now you can send anything through portals!
+- Updated readme. It now contains a "How it works" section.
+- Fix analysis issues. (A file wasn't saved yet and showed no errors in the editor.)
+
 ## 0.0.8 – 2020-01-02
 
 - Revise this changelog.
