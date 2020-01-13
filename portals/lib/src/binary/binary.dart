@@ -44,9 +44,11 @@ class BytesReader extends BinaryReader {
 
 Uint8List serialize(dynamic object) {
   final writer = BytesWriter(defaultTypeRegistry)..write(object);
-  return Uint8List.fromList(writer.data);
+  final data = Uint8List.fromList(writer.data);
+
+  return data;
 }
 
 dynamic deserialize(Uint8List data) {
-  return BytesReader(data, defaultTypeRegistry).read();
+  return BytesReader(List<int>.from(data), defaultTypeRegistry).read();
 }

@@ -40,9 +40,8 @@ class AdapterForMyClass<T> extends TypeAdapter<MyClass<T>> {
 }
 
 void main() {
-  AdapterForMyClass().registerWithId(0);
-  AdapterForMyClass<int>().registerWithId(1);
-  AdapterForList<int>().registerWithId(2);
+  AdapterForMyClass<int>().registerWithId(0);
+  AdapterForList<int>().registerWithId(1);
 
   final data = serialize(MyClass(id: 'some-id', someNumbers: [1, 2, 3]));
   print('Serialized to $data');

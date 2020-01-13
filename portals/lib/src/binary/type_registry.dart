@@ -13,6 +13,10 @@ class TypeRegistry {
   final _adaptersByExactType = <Type, TypeAdapter<dynamic>>{};
   final _typeTree = TypeNode<Object>.virtual();
 
+  // If an exact type can't be encoded, we suggest adding an adapter. Here, we
+  // save which adapters we suggested along with the suggested id.
+  final _suggestedAdapters = <String, int>{};
+
   /// Register a [TypeAdapter] to announce it.
   void registerAdapter<T>(int typeId, TypeAdapter<T> adapter) {
     if (_idsByAdapters[adapter] == typeId) {
@@ -53,13 +57,27 @@ class TypeRegistry {
     }
 
     final bestMatchingAdapter = _typeTree.findAdapterByValue(value);
+    final actualType = value.runtimeType.toString();
+    final matchingType = bestMatchingAdapter.type.toString();
 
-    debugPrint('No adapter for the exact type ${value.runtimeType} found, so '
-        'we\'re encoding it as a ${bestMatchingAdapter.type}. '
-        'For better performance and truly type-safe serializing, consider '
-        'adding an adapter for that type by calling '
-        'AdapterFor${value.runtimeType}().registerWithId'
-        '(${_adaptersById.keys.reduce(max) + 1}).');
+    if (actualType != matchingType &&
+        actualType.replaceAll('JSArray', 'List') != matchingType) {
+      // Suggest adding an exact adapter.
+      final suggestedId = _suggestedAdapters[actualType] ??
+          _adaptersById.keys.reduce(max) + 1 + _suggestedAdapters.length;
+      _suggestedAdapters[actualType] = suggestedId;
+
+      if (bestMatchingAdapter == null) {
+        throw Exception('No adapter for the type $actualType found. Consider '
+            'adding an adapter for that type by calling '
+            'AdapterFor$actualType().registerWithId($suggestedId).');
+      }
+
+      debugPrint('No adapter for the exact type $actualType found, so we\'re '
+          'encoding it as a $matchingType. For better performance and truly '
+          'type-safe serializing, consider adding an adapter for that type by '
+          'calling AdapterFor$actualType().registerWithId($suggestedId).');
+    }
 
     return bestMatchingAdapter;
   }
