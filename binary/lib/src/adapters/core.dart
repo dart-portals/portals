@@ -1,31 +1,30 @@
-part of '../adapters.dart';
+part of 'adapters.dart';
 
 // Adapters for types of the dart:core library.
 
 extension PrimitiveTypesWriter on BinaryWriter {
-  void writeBool(bool value) => writeByte(value ? 1 : 0);
-  void writeDouble(double value) =>
-      writeByteData(ByteData(8)..setFloat64(0, value, Endian.little));
+  void writeBool(bool value) => writeUint8(value ? 1 : 0);
+  void writeDouble(double value) => writeFloat64(value);
   void writeInt(int value) => writeDouble(value.toDouble());
 
   void writeString(String value) =>
-      writeUint8List(Uint8List.fromList(utf8.encode(value)));
+      writeByteList(Uint8List.fromList(utf8.encode(value)));
   void writeAsciiString(String value) {
     assert(value.codeUnits.every((codeUnit) => (codeUnit & ~0x7f) != 0),
         'String contains non-ASCII chars.');
-    writeUint8List(value.codeUnits);
+    writeByteList(value.codeUnits);
   }
 
   void writeLength(int length) => writeUint32(length);
 }
 
 extension PrimitiveTypesReader on BinaryReader {
-  bool readBool() => readByte() != 0;
-  double readDouble() => readByteData(8).getFloat64(0, Endian.little);
+  bool readBool() => readUint8() != 0;
+  double readDouble() => readFloat64();
   int readInt() => readDouble().toInt();
 
-  String readString() => utf8.decode(readUint8List());
-  String readAsciiString() => String.fromCharCodes(readUint8List());
+  String readString() => utf8.decode(readByteList());
+  String readAsciiString() => String.fromCharCodes(readByteList());
 
   int readLength() => readUint32();
 }

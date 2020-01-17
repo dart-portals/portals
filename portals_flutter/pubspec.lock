@@ -136,7 +136,7 @@ packages:
       name: portals
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.0.5"
+    version: "0.0.7"
   quiver:
     dependency: transitive
     description:
@@ -205,13 +205,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.0.8"
-  version:
-    dependency: transitive
-    description:
-      name: version
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "1.0.3"
   web_socket_channel:
     dependency: transitive
     description:

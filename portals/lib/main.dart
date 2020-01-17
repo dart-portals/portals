@@ -1,13 +1,14 @@
 import 'dart:isolate';
 
 import 'portals.dart';
-// import 'src/binary/sample.dart' as sample;
+import 'src/binary/sample.dart' as sample;
 import 'src/utils.dart';
 
 const appId = 'example.com';
 
 void main() {
-  portal();
+  sample.main();
+  // portal();
 }
 
 void portal() async {

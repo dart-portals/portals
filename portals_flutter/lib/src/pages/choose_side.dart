@@ -1,39 +1,23 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
-class ChooseAction extends StatefulWidget {
-  const ChooseAction({
-    Key key,
-    @required this.onFirstTapped,
-    @required this.onSecondTapped,
-  }) : super(key: key);
+import '../setup_portal.dart';
+import 'display_phrase.dart';
 
-  final VoidCallback onFirstTapped;
-  final VoidCallback onSecondTapped;
+class ChooseSidePage extends StatelessWidget {
+  const ChooseSidePage({Key key}) : super(key: key);
 
-  @override
-  _ChooseActionState createState() => _ChooseActionState();
-}
+  void _firstSideChosen(BuildContext context) {
+    context
+      ..portal.open()
+      ..app.push(DisplayPhrasePage());
+  }
 
-class _ChooseActionState extends State<ChooseAction> {
-  Color color;
-  double height;
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    color = [Colors.yellow, Colors.red, Colors.green][Random().nextInt(3)];
-    height = 20 + Random().nextInt(500).toDouble();
+  void _secondSideChosen() {
+    // context.navigator.push(EnterPhrasePage());
   }
 
   @override
   Widget build(BuildContext context) {
-    // return Container(
-    //   color: color,
-    //   height: height,
-    //   child: InkWell(onTap: widget.onTap),
-    // );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -46,13 +30,13 @@ class _ChooseActionState extends State<ChooseAction> {
             ActionButton(
               color: Color(0xff29339b),
               label: '1',
-              onPressed: widget.onFirstTapped,
+              onPressed: () => _firstSideChosen(context),
             ),
             Spacer(),
             ActionButton(
               color: Color(0xffff5964),
               label: '2',
-              onPressed: widget.onSecondTapped,
+              onPressed: _secondSideChosen,
             ),
             Spacer(),
           ],

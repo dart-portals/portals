@@ -2,11 +2,15 @@ import 'package:meta/meta.dart';
 
 import 'binary.dart';
 
+@BinaryType(legacyFields: {2})
 class MyClass<T> {
   MyClass({@required this.id, @required this.someNumbers});
 
+  @BinaryField(0)
   final String id;
-  final List<T> someNumbers;
+
+  @BinaryField(1)
+  final Set<T> someNumbers;
 
   String toString() => 'MyClass($id, $someNumbers)';
 }
@@ -42,8 +46,9 @@ class AdapterForMyClass<T> extends TypeAdapter<MyClass<T>> {
 void main() {
   AdapterForMyClass<int>().registerWithId(0);
   AdapterForList<int>().registerWithId(1);
+  AdapterForSet<int>().registerWithId(2);
 
-  final data = serialize(MyClass(id: 'some-id', someNumbers: [1, 2, 3]));
+  final data = serialize(MyClass(id: 'some-id', someNumbers: {1, 2, 3}));
   print('Serialized to $data');
   print(deserialize(data));
 }

@@ -1,0 +1,10 @@
+name: binary
+description: A binary serializer.
+version: 0.0.1
+homepage: https://github.com/marcelgarus/portals
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+
+dependencies:
+  meta: ^1.1.8

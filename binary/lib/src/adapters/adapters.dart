@@ -1,21 +1,15 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'binary_reader.dart';
-import 'binary_writer.dart';
-import 'type_adapter.dart';
+import '../source.dart';
+import '../type_adapter.dart';
 
-export 'binary_reader.dart';
-export 'binary_writer.dart';
-
-part 'adapters/core.dart';
-part 'adapters/custom.dart';
-part 'adapters/typed_data.dart';
+part 'core.dart';
+part 'custom.dart';
+part 'typed_data.dart';
 
 final builtInAdapters = <int, TypeAdapter<dynamic>>{
   // dart:typed_data adapters.
-  -1: AdapterForByteBuffer(),
-  -2: AdapterForByteData(),
   -3: AdapterForUint8List(),
 
   // dart:core adapters.

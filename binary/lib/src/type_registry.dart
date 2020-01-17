@@ -1,9 +1,8 @@
 import 'dart:math';
 
-import 'package:portals/src/binary/type_adapter.dart';
-import 'package:portals/src/binary/type_node.dart';
-
-import 'adapters.dart';
+import 'adapters/adapters.dart';
+import 'type_adapter.dart';
+import 'type_node.dart';
 
 void debugPrint(Object object) => print(object);
 
@@ -60,7 +59,9 @@ class TypeRegistry {
     final actualType = value.runtimeType.toString();
     final matchingType = bestMatchingAdapter.type.toString();
 
-    if (actualType.replaceAll('JSArray', 'List') != matchingType) {
+    if (actualType.replaceAll('JSArray', 'List') != matchingType &&
+            !actualType.startsWith('_') ||
+        matchingType.contains('dynamic')) {
       // Suggest adding an exact adapter.
       final suggestedId = _suggestedAdapters[actualType] ??
           _adaptersById.keys.reduce(max) + 1 + _suggestedAdapters.length;

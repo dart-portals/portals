@@ -1,8 +1,7 @@
 import 'package:meta/meta.dart';
-import 'package:portals/src/binary/type_registry.dart';
 
-import 'binary_reader.dart';
-import 'binary_writer.dart';
+import 'source.dart';
+import 'type_registry.dart';
 
 typedef Writer<T> = void Function(BinaryWriter writer, T obj);
 typedef Reader<T> = T Function(BinaryReader reader);

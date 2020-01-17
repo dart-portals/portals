@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  portals: ^0.0.3
+  portals: ^0.0.7
 
 dev_dependencies:
   flutter_test:
