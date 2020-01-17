@@ -15,6 +15,15 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.1.2"
+  binary:
+    dependency: "direct main"
+    description:
+      path: binary
+      ref: HEAD
+      resolved-ref: fa49154b4e9ab7657d563f7acf1b5be7aca7e674
+      url: "git://github.com/marcelgarus/portals"
+    source: git
+    version: "0.0.1"
   charcode:
     dependency: transitive
     description:
@@ -93,4 +102,4 @@ packages:
     source: hosted
     version: "1.1.0"
 sdks:
-  dart: ">=2.6.0 <3.0.0"
+  dart: ">=2.7.0 <3.0.0"

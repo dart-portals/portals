@@ -8,6 +8,10 @@ environment:
 
 dependencies:
   async: ^2.4.0
+  binary:
+    git:
+      url: git://github.com/marcelgarus/portals
+      path: binary
   meta: ^1.1.8
   web_socket_channel: ^1.1.0
   crypto: ^2.1.3
