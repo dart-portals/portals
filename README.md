@@ -150,11 +150,13 @@ It then extracts both the mailbox id as well as the shared key.
 After connecting to the mailbox server and requesting to join the mailbox with the given id, both portals talk to each other over the mailbox server.
 
 That's when the encryption phase begins – to make transcribing the phrase as easy as possible, the shared key is pretty small.
-For a strong encryption, both portals will need to agree on a much larger key. That's why they produce a random secret key each and derive yet another key from that.
-By exchanging these, they can agree on a key only known to both of them.  
-Imagine you can multiply numbers easily, but dividing is really hard. (More technically speaking, elements of the Edwards curve group are used instead of numbers, but who minds.)  
-Having the small shared key $s$, portals generate huge random private keys $a$ and $b$. They calculate $A = s*a$ and $B = s*b$ and exchange $A$ and $B$. Then they multiply these with their private keys – the first portal calculates $N_a = a*B$ and the second one $N_b = b*A$. Because $N_a = a*B = a*b*s = b*a*s = b*A = N_b$, both keys are equal.  
-An attacker not knowing $s$ can only observe $A$ and $B$ being exchanged, but can't derive the resulting key, making man-in-the-middle-attacks virtually impossible.
+For a strong encryption, both portals will need to agree on a much larger key.
+Here's how it works:  
+Imagine you can multiply numbers easily, but dividing is really hard. (Actually, elements of the Edwards curve group are used instead of numbers and they have these properties.)  
+Having the small shared key *s*, portals generate huge random private keys *m* and *n*.
+They calculate *M = s×m* and *N = s×n* and exchange *M* and *N*.
+Then they multiply these with their private keys – the first portal calculates *kₘ = m×N* and the second one *kₙ = n×M*. Because *kₘ = m×N = m×s×n = n×s×m = n×M = kₙ*, both keys are equal.  
+An attacker not knowing *s* can only observe *M* and *N* being exchanged, but can't derive the resulting key, making man-in-the-middle-attacks virtually impossible.
 
 Now, clients can use the mailbox to exchange encrypted messages.
 They exchange their ip addresses and try to connect to the other client.
