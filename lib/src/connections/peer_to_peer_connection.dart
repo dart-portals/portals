@@ -43,11 +43,17 @@ class PeerToPeerConnection {
     }
   }
 
-  void send(List<int> message) =>
-      socket.add(SecretBox(key).encrypt(message).toBytes());
+  void send(List<int> message) {
+    final encrypted = SecretBox(key).encrypt(message).toBytes();
+    print('Sending encrypted $encrypted');
+    socket.add(encrypted);
+  }
 
-  Future<Uint8List> receive() async => SecretBox(key)
-      .decrypt(EncryptedMessage.fromList(await _incomingData.next));
+  Future<Uint8List> receive() async {
+    final encrypted = await _incomingData.next;
+    print('Received encrypted $encrypted');
+    return SecretBox(key).decrypt(EncryptedMessage.fromList(encrypted));
+  }
 
   Future<void> close() => socket.close();
 }
