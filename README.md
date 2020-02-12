@@ -19,13 +19,12 @@ Strong end-to-end encryption using Spake2 is built in.
 Man-in-the-middle attacks are virtually impossible because both sides share a secret from the beginning.
 
 ⚡ **Fast:**
-Data is transferred using peer-to-peer connections whenever possible.
+Data is compressed and transferred using peer-to-peer connections whenever possible.
 That makes portals incredibly fast when used on the same wifi or in the same geographic area.
 
 🎈 **Lightweight:**
-There are no native dependencies.
+There are no native dependencies and portals use lightweight standardized WebSockets to communicate.
 That also means, portals work anywhere where Dart runs: on mobile, desktop & the web.
-Portals use lightweight WebSockets to communicate.
 
 ## How to use
 

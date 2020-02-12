@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:binary/binary.dart';
 import 'package:meta/meta.dart';
 import 'package:pedantic/pedantic.dart';
-import 'package:portals/src/connections/mailbox_server_connection.dart';
-import 'package:portals/src/connections/server_connection.dart';
 
 import 'close_reason.dart';
+import 'connections/mailbox_server_connection.dart';
+import 'connections/server_connection.dart';
 import 'errors.dart';
 import 'phrase_generators/phrase_generator.dart';
 import 'connections/dilated_connection.dart';
@@ -184,10 +185,32 @@ class Portal {
   Future<void> waitUntilReady() => events.whereType<PortalConnected>().first;
 
   /// Sends the given message to the linked portal.
-  void send(dynamic message) => _client.send(serialize(message));
+  void send(dynamic message) {
+    // For small simple objects compression adds unnecessary overhead. That's
+    // why we only compress the message if that makes it smaller. The first
+    // byte indicates whether the data is compressed (1) or not (0).
+    final serialized = serialize(message);
+    final compressed = GZipEncoder().encode(serialized);
+    final data = (compressed.length < serialized.length)
+        ? ([1] + compressed).toBytes()
+        : ([0] + serialized).toBytes();
+
+    print('Sending data $data.');
+    _client.send(data);
+  }
 
   /// Receives a message from the linked portal.
-  Future<T> receive<T>() async => deserialize(await _client.receive());
+  Future<T> receive<T>() async {
+    final data = await _client.receive();
+
+    print('Received data $data.');
+    final serialized = data[0] == 1
+        ? GZipDecoder().decodeBytes(data.sublist(1))
+        : data.sublist(1);
+    final message = deserialize(serialized);
+
+    return message;
+  }
 
   /// Closes this portal.
   Future<void> close() async {
