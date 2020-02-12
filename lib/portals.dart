@@ -1,3 +1,5 @@
+export 'package:binary/binary.dart';
+
 export 'src/portal.dart';
 export 'src/errors.dart';
 export 'src/events.dart';
