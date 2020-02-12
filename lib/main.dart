@@ -1,5 +1,7 @@
 import 'dart:isolate';
 
+import 'package:meta/meta.dart';
+
 import 'portals.dart';
 import 'src/utils.dart';
 
@@ -14,7 +16,7 @@ void portal() async {
   final phrase = await portal.open();
 
   print(phrase);
-  await Isolate.spawn(otherMain, phrase);
+  // await Isolate.spawn(otherMain, phrase);
 
   final key = await portal.waitForLink();
   print('Portal linked using key ${key.toHex()}.');
@@ -33,5 +35,44 @@ void otherMain(String phrase) async {
 
   await portal.waitUntilReady();
   await portal.send('Hi there.');
-  await portal.send(Duration(days: 42, milliseconds: 123));
+  await Future.delayed(Duration(seconds: 1));
+  await portal.send(MyClass(
+    id: 'hello',
+    someNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+  ));
+}
+
+class MyClass<T> {
+  MyClass({@required this.id, @required this.someNumbers});
+
+  final String id;
+  final List<T> someNumbers;
+}
+
+class AdapterForMyClass<T> extends TypeAdapter<MyClass<T>> {
+  const AdapterForMyClass();
+
+  @override
+  void write(BinaryWriter writer, MyClass<T> obj) {
+    writer
+      ..writeNumberOfFields(2)
+      ..writeFieldId(0)
+      ..write(obj.id)
+      ..writeFieldId(1)
+      ..write(obj.someNumbers);
+  }
+
+  @override
+  MyClass<T> read(BinaryReader reader) {
+    final numberOfFields = reader.readNumberOfFields();
+    final fields = <int, dynamic>{
+      for (var i = 0; i < numberOfFields; i++)
+        reader.readFieldId(): reader.read(),
+    };
+
+    return MyClass<T>(
+      id: fields[0],
+      someNumbers: fields[1],
+    );
+  }
 }
